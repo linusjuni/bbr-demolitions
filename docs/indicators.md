@@ -13,7 +13,7 @@ the explicit method where they state one.
 
 | # | Paper | Demolition indicator (explicit method) | Filters added | Notes |
 |---|-------|----------------------------------------|---------------|-------|
-| 1 | **Andersen & Negendahl (2022)** — *Adaptation of circular design strategies…* (SBE22-Delft, IOP 1085) | **Pre-made KMD extract.** The BBR administrator (KMD) produced an extract of "all demolition cases reported by municipalities." 152,300 demolition cases, Feb 2000 – Jun 2020. | Discard pre-2011 (too many registration errors before then) | **Not ground truth — an opaque proxy.** KMD's extract rests on the same register events (`Status=10`/`udgået`/`Business Process=3`) as the transparent proxies, but its filtering recipe is unpublished, so it can't be reproduced or audited. Both #2 and #3 inherit this dataset. |
+| 1 | **Andersen & Negendahl (2022)** — *Adaptation of circular design strategies…* (SBE22-Delft, IOP 1085) | **Pre-made KMD extract.** The BBR administrator (KMD) produced an extract of "all demolition cases reported by municipalities." 152,300 demolition cases, Feb 2000 – Jun 2020. | Discard pre-2011 (too many registration errors before then) | **A proxy — but no longer a black box.** We now hold the raw extract (`dataset/andersen_raw.csv`); its *filtering* recipe (which rows KMD dropped) is still unpublished, but its **signal is now identified**: every row is `Sagstype = 32` (total demolition), and our transparent case indicator reproduces its membership to **~99%** window-matched — see [§Reproducing the KMD extract](#reproducing-the-kmdandersen-extract--its-sagstype-32). So it is a total-demolition-**case** list, *not* `Status=10`. Both #2 and #3 inherit this dataset. |
 | 2 | **Droob & Nybroe (2024 thesis → 2026 IOP paper)** — *Building Service Life Revised* | **`Business Process (Forretningshændelse) = 3`** = "update due to demolition." *(Stated in the 2024 thesis and attributed to them by paper #4; the 2026 conference paper only says "BBR demolitions 2017–2024" + Andersen's dataset.)* | Remove outbuildings | Merges Andersen's dataset (#1) with public BBR 2017–2024. Real novelty is left-censoring, not the indicator. |
 | 3 | **When Buildings Die** (DTU thesis) | **`Status = 10`** ("historisk"). Demolition year = `Effect From` of first `Status=10` record. Tried `Business Process=3` and `Status=10 AND Business Process=3` first, rejected both for undercounting. | Remove discontinued/outdated use-codes (re-registration artefacts, gave >90% fake demolition rates) | Also merges Andersen's dataset (#1) as a supplementary source. Prefers slight overcount over undercount. |
 | 4 | **Omfanget af nedrivning 2012–2023** (AAU/BUILD 2025) | **`"udgået"`** (retired from BBR, field `ObjStatus`). | Only buildings built before 1999 (newer "udgået" were mostly status errors) | ~2.2 mio m²/yr ≈ 0.3% of stock. Assumes "udgået" ≈ demolished. |
@@ -210,9 +210,12 @@ Better framing for the ablation:
 - Compare the proxies **against each other** — where they agree, where they
   diverge, and *why* (what each over- or under-counts). The disagreements are the
   result, not noise to be resolved against a reference.
-- Use the KMD extract (#1/#8) as **one transparent-ish reference point**, not the
-  gold standard — useful because it's large and national, caveated because it's
-  opaque.
+- Use the KMD extract (#1/#8) as **one national reference point**, not the gold
+  standard. It is large and national, and — now that we hold the raw file — its
+  *signal* is reproducible (`sagstype=32`, ~99% window-matched; see
+  [§Reproducing the KMD extract](#reproducing-the-kmdandersen-extract--its-sagstype-32)).
+  Still not truth: its *filtering* recipe is unpublished and it inherits the same noisy
+  register events as every other proxy.
 - Use **BOSSINF (#6) as the only real ground truth**, on the slice where it
   exists (grant-funded demolitions). It's the one place we can actually measure a
   proxy's false-positive/false-negative rate against something authoritative.
@@ -352,9 +355,112 @@ question to settle against BOSSINF, not an assumption.
 - **No collapse rule needed** — only ~2.7% of case-buildings carry both sagstype 31
   and 32, and the raw `sagstypes_seen` list handles them with zero judgment.
 
+## Reproducing the KMD/Andersen extract — it's `sagstype 32`
+
+For most of this document the KMD extract behind Andersen & Negendahl (#1/#8) is called
+an **opaque** proxy whose recipe "can't be reproduced or audited." That was true until we
+obtained the **raw extract itself** — `dataset/andersen_raw.csv`, the 152,300-row file KMD
+produced — which carries the **building UUID (`id_lokalId`)** on every row. That single
+column lets us stop guessing and *measure* what KMD is.
+
+### How we found out (the method — reproducible via `src/kmd_comparison.py`)
+
+1. **Read the raw extract and check its own `Sagstype` column.** Every one of the 152,300
+   rows is `Sagstype = 32` (Nedrivning hel / total demolition). So KMD's signal is not
+   inferred — it is stated in KMD's own data: a **total-demolition-case list**.
+2. **Join to our extract by `id_lokalId`** (lower-cased — KMD uses upper-case UUIDs, our
+   parquet lower-case). **All 149,013 distinct KMD buildings are present** in our 2017+
+   extract (backdated `virkningFra` keeps the records), so the comparison is complete.
+3. **Score each proxy D1–D7 against the KMD set** — recall (share of KMD caught),
+   precision (share of the proxy that is KMD), Jaccard.
+4. **Window-match on one clock.** KMD spans 2000–2020 and the paper drops pre-2011; our
+   proxies run 2000–2025 unfiltered — so raw precision is unfair (a proxy's legitimate
+   post-2020 demolitions look like false positives). Both sides are therefore dated by the
+   **same** field (our status-10 `virkningFra` year) and restricted to **2011–2019**.
+
+### What it shows
+
+Window-matched to 2011–2019 (full table in `results/kmd_comparison.csv`):
+
+| proxy | signal | recall of KMD | precision | Jaccard |
+|-------|--------|--------------:|----------:|--------:|
+| D1 | status = 10 | **100.0%** | 47.2% | 0.47 |
+| D2 / D3 | process = 3 | 24.2% | 99.7% | 0.24 |
+| **D4** | **sagstype = 32** | **99.7%** | **99.4%** | **0.99** |
+| D5 | sagstype {31,32} | 99.7% | 99.0% | 0.99 |
+| D6 | status10 ∩ 32 | 99.7% | 99.4% | 0.99 |
+| D7 | case date present | 99.0% | 99.1% | 0.98 |
+
+Three tiers of conclusion, kept distinct so we don't overclaim:
+
+- **Pinned (direct evidence + comparison): KMD is the total-demolition-case signal, and
+  it is *not* `status=10`.** D1 has 100% recall but only 47% precision — it *contains* KMD
+  but flags ~2× as many buildings, so it is a strict **superset**, not KMD. Process-3
+  (D2/D3) is ruled out the other way: 24% recall, a severe undercount.
+- **Underdetermined (which exact variant): D4 ≈ D5 ≈ D6 ≈ D7.** All four case-based
+  indicators reproduce KMD to 0.98–0.99; membership **cannot** single one out. D4 and D6
+  are literally identical in-window (the status-10 clock forces it). The one weak
+  discriminator is that KMD is **32-only** (no partials), so the total-only indicators
+  (D4/D6) edge out D5 (which adds `sagstype 31`) by ~0.4 pp precision. So the honest
+  statement is "**KMD = the total-demolition case family**," with D4/D6 the tightest
+  literal match — not "KMD = D4" specifically.
+- **Still unknown: KMD's *filtering*.** We reproduce its *membership*, not the exact rows
+  it dropped pre-2011 or how it de-duplicated. That recipe stays unpublished — but it now
+  sits inside a ±1% band of a signal we can build and document ourselves.
+
+**Why this matters for the ablation.** The proxy the field has leaned on as its
+nearest-to-truth reference is our own `sagstype=32` indicator under another name. It
+belongs in the ablation as a **window-matched external anchor** (not ground truth — it is
+still a filtered proxy over the same noisy register events), and it confirms two of our
+tradeoff claims independently: `status=10` overcounts (~2×), `process=3` undercounts (~4×).
+
+### The ~1% where D4 and KMD disagree is structured — and D4 is the cleaner set
+
+"D4 ≈ KMD to 99%" undersells it. Profiling the ~900 in-window buildings where they
+disagree (2011–2019) shows the mismatch is **not random noise** — it runs in opposite
+quality directions, and on both sides D4 is the more defensible set.
+
+**323 KMD-only buildings (D4 misses them) are register-exit ghosts:**
+
+| metric | normal demolitions (both) | KMD-only (323) |
+|--------|--------------------------:|---------------:|
+| ever `status = 10` | 100% | 100% |
+| **has a demolition case** | 100% | **0%** |
+| null use-code | 0.0% | **62.8%** |
+| null construction year | 9.0% | **63.2%** |
+| null footprint area | 0.0% | **62.8%** |
+
+All 323 reached `status = 10` but carry **no demolition case at all**, and ~63% are
+near-empty stub records (no use code, year or area); the minority that do have a use code
+skew to discontinued/agricultural codes (490, 320, 920, 930). D4 misses them *by design* —
+they are exactly the case-less, attribute-empty status-10 artifacts it is built to exclude.
+So **KMD swept them in; D4 correctly left them out.** Direct evidence that KMD is not a pure
+`sagstype=32` signal — it carries a sliver (~0.3%) of register-exit noise.
+
+**592 D4-only buildings (KMD omitted them) are the opposite — clean:**
+
+| metric | normal | D4-only (592) |
+|--------|-------:|--------------:|
+| null use-code | 0.0% | 0.0% |
+| null footprint | 0.0% | 0.0% |
+| null construction year | 9.0% | 2.9% |
+| last status ≠ 10 (reactivated) | 0.8% | **4.4%** |
+| median # versions | 4 | **6** |
+
+These are fully-populated, real demolition-case buildings — as complete as baseline or
+better — that KMD's opaque filtering simply dropped (pre-2011 / dedup / cutoff edge). The
+one mild oddity: 4.4% reactivated after going historical (vs 0.8% baseline), a plausible
+reason KMD excluded them.
+
+**Takeaway:** on the buildings where the two disagree, what D4 *misses* is junk KMD
+shouldn't have included, and what D4 *adds* is clean cases KMD discarded. The transparent
+indicator isn't merely reproducing the opaque reference — it is marginally **cleaner** than
+it. (Reproduce via `src/kmd_comparison.py`; the profiling query is recorded there.)
+
 ### Next step
 
 Score the 14 variants against **BOSSINF** on its grant-funded-demolition slice — the
-one place a real precision/recall can be read — then propagate each through to the
-downstream outputs (counts, demolished area, rate-vs-stock, lifespans, typology/geo
-breakdowns) per the ablation scope above.
+one place a real precision/recall can be read against something *authoritative* (KMD is a
+reference, not truth) — then propagate each through to the downstream outputs (counts,
+demolished area, rate-vs-stock, lifespans, typology/geo breakdowns) per the ablation scope
+above.
