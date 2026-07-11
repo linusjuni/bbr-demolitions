@@ -10,6 +10,36 @@ The headline BBR demolition statistics are not robust to indicator choice. Naive
 
 TODO: We will make: `dataset/demolitions.parquet`
 
+## Cleaning temporal BBR extracts
+
+The canonical cleaning layer preserves every temporal observation and every
+source column from `Bygning`, `BBRSag`, and `Sagsniveau`. It normalizes known
+types and writes compressed Parquet without applying a demolition definition.
+It also appends `region_name`, using Statistics Denmark's municipality-region
+classification valid from 2007, and `building_use_group` to `Bygning`, using a
+fine aggregation of the official BBR use-code hierarchy. The original codes
+remain available for alternative classifications.
+
+Run a bounded validation conversion first:
+
+```bash
+.venv/bin/python -m src.cleaning.clean_temporal_bbr \
+  --n-rows 10000 \
+  --output-dir /tmp/bbr-clean-sample
+```
+
+After reviewing the sample outputs and available disk space, run the complete
+conversion:
+
+```bash
+.venv/bin/python -m src.cleaning.clean_temporal_bbr
+```
+
+Outputs are written to `dataset/clean/` and are intentionally not committed.
+Use `--entity bygning`, `--entity bbrsag`, or `--entity sagsniveau` to process a
+single extract. Existing outputs are protected unless `--overwrite` is passed.
+The detailed description is in [docs/cleaning.md](docs/cleaning.md).
+
 ## Authors
 
 Linus, Theodor, Oscar (DTU/EPFL).

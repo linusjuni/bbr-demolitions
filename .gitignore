@@ -11,7 +11,12 @@ __pycache__/
 # The slim dataset IS committed
 !dataset/*.parquet
 
+# Full cleaned temporal extracts are reproducible and too large to commit
+dataset/
+
 # OS / editor
 .DS_Store
 .vscode/
 .idea/
+
+docs/personal/*
