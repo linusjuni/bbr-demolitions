@@ -205,6 +205,14 @@ Two axes must be kept separate here — conflating them is easy:
 
 ## Not yet done
 
+- **⭐ Outcome × indicator range — the paper's headline (HIGHEST PRIORITY, still missing).**
+  The pipeline produces per-variant counts/area/coverage, but has NOT yet reduced them to the
+  min–max spread that IS the contribution: (a) national demolished m²/yr and (b) demolition
+  **rate vs stock**, over the shared window. Anchor to the Rune PhD's **~0.26%/yr** under the
+  KMD/`sagstype=32` indicator (denominator: Statistics Denmark **BYGB34**), then report the
+  spread across the others — the "swapping the indicator moves the rate by [X]-fold" sentence.
+  The abstract/contribution paragraph cannot be written until this exists. See
+  [`docs/paper.md`](paper.md) → "The rate-vs-stock benchmark" + "Blocking analysis".
 - **Fold KMD scoring into the main run** — `src/kmd_comparison.py` runs standalone; it
   could emit its table alongside the other `results/` outputs from `ablation.py`.
 - **BOSSINF scoring** — the one *authoritative* slice (grant-funded demolitions) where a
