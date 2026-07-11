@@ -12,4 +12,4 @@ TODO: We will make: `dataset/demolitions.parquet`
 
 ## Authors
 
-Linus, Theodor, Oscar (DTU).
+Linus, Theodor, Oscar (DTU/EPFL).
