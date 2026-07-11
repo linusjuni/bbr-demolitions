@@ -71,12 +71,20 @@ not a proxy.
 
 ### The catch — and why every paper used a proxy instead
 
-**The demolition fields are not in the public Datafordeler feed.** The distributed
+**The demolition *dates* are not in the public Datafordeler feed.** The distributed
 `Bygning` object carries construction/renovation attributes (`byg026Opførelsesår`,
 `byg027OmTilbygningsår`, …) but **no felt 294/295 and no plain demolition date.**
-Worse, once felt 295 is reported the building is *deleted from the live register* —
-so in standard public BBR a demolished building simply **disappears** rather than
-carrying a "demolished" flag you can filter on.
+
+And a subtlety that trips people up: when felt 295 is reported the building exits the
+**current-state view** (`stamregister` / "gældende") — so in a *current* snapshot a
+demolished building **disappears**. But it is **not** purged from Datafordeler: in
+the **bitemporal / temporal (all-status) view** it is retained as a record with
+**`status = 10 Historisk`** plus registration/effect timestamps. So the building
+leaves the *current* dataset, not the *temporal* one. Concretely: pull the
+**temporal total download** (not a current snapshot), or demolished buildings won't
+be there to detect at all. The old KMD-era operational register literally moved the
+record to a separate historical register; Datafordeler grunddata instead models the
+exit as a retained status transition — same concept, different plumbing.
 
 That is the whole reason for the proxy zoo:
 
@@ -94,18 +102,64 @@ That is the whole reason for the proxy zoo:
   "Forretningshændelse = 3" and BBR's Sagstype=3 "Nedrivning" share the code `3`;
   worth verifying against the thesis whether these are literally the same field.)
 
+### How reliable is the KMD extract, really? (evidence, not vibes)
+
+The KMD extract is **not** a curated quality-controlled dataset — it is the same
+municipal-reported `udgået`/demolition-case data, compiled by the pre-Datafordeler
+operator with an unpublished recipe. Authoritative sources say the underlying
+signal is noisy and biased:
+
+- **BUILD / Social- og Boligstyrelsen (2024–25)** state plainly that `udgået` is
+  only *assumed* to mean demolition, and that the counts likely **overcount**:
+  *"Udgået byggeri … betyder, at en given bygning … er udgået af BBR-registret,
+  **formentlig** gennem nedrivning"*; *"det kan … **ikke udelukkes** at 'udgået' kan
+  dække over andre årsager"*; and on the figures, *"de nedrevne arealer **formentlig
+  er overvurderede** … data kan være **mangelfulde eller fejlbehæftede**."*
+- **Rigsrevisionen (National Audit Office), *Beretning om BBR*** found BBR data
+  quality **unsatisfactory** and **varying considerably between municipalities**,
+  and told the ministry to map the errors and actively supervise operation/data
+  quality. (Older report, ~2003 — the problem is structural and long-standing.)
+- **The papers' own filtering is the tell:** #1 discards all pre-2011; #8 strips
+  "1000" auto-buildings + pre-2010; #3 found discontinued use-codes gave **>90%
+  fake demolition rates**; #4 found newer `udgået` was **mostly status errors**.
+
+So the KMD extract's only real advantages over a fresh Datafordeler pull are
+**national coverage** and **pre-2017 reach** — *not* accuracy. Treat it as a large,
+opaquely-filtered proxy with error bars, not a gold label. A transparent
+`status=10 ∩ sagstype∈{31,32}` signal we build and document ourselves is arguably no
+less trustworthy.
+
+### The demolition case: sagstype 31/32 (the current handle) vs felt 294/295 (gone from the feed)
+
+Two register generations, easy to conflate:
+
+- **Old BBR Instruks numbering:** felt 290 **Sagstype = 3 "Nedrivning (hel eller
+  delvis)"** — a single code. Demolition dates were felt **294 "Anmeldelse af
+  nedrivning"** and felt **295 "Gennemført nedrivning"**.
+- **Current grunddata (what's distributed on Datafordeler):** the `Sagstype` code
+  list renumbered and *split* it — **`Sagsniveau.sagstype = 31 "Nedrivning
+  (delvis)"` and `32 "Nedrivning (hel)"`**. So paper #2's "Sagstype = 3" and the
+  modern `31/32` are the *same concept* across register versions, not different
+  signals.
+
+**Do felt 294/295 still exist?** Yes in the *operational* register (still live in
+the BBR Instruks, where caseworkers enter data) — but **no** in the distributed
+grunddata: they are not exposed as attributes on `Bygning` or `BBRSag`. So you
+**cannot** pull felt 295 from the Datafordeler extract. The demolition *case* is
+still visible via **`Sagsniveau.sagstype ∈ {31, 32}`**; the completion *date* is not
+a named field there.
+
 ### The indicator I'd propose
 
-- **If you can obtain the historical register / a KMD-style extract:** use **felt
-  295 "Gennemført nedrivning" as the event, restricted to Sagstype=3 cases.** This
-  is as close to ground truth as BBR structurally allows. Decide explicitly whether
-  to keep partial demolitions (felt 295 fires for "hel *eller delvis*"). This makes
-  our indicator *reproducible* where the KMD extract is not — same signal, our own
-  documented recipe.
-- **If you only have public snapshots:** use **status 10 Historisk ∩ a Sagstype=3
-  demolition case** — the intersection strips the non-demolition status-10 causes
-  that make raw `Status=10` overcount, and requires the completion side that raw
-  `Business Process=3` lacks.
+- **Datafordeler route (reproducible, 2017→now):** a building linked (via
+  `Sagsniveau`) to a demolition case **`sagstype = 32` (hel/total)** that also went
+  to **`Bygning.status = 10 Historisk`**. Add `sagstype = 31` (delvis/partial) only
+  if you deliberately want partial demolitions. `sagstype 31/32` is cleaner than the
+  older `byggesagskode` (2/5 `UDFASES`, 6) — it is directly semantic and splits
+  partial vs total.
+- **KMD / historical-register route (national, pre-2017):** the nearest thing to
+  felt 295, but compiled opaquely by KMD — use as a caveated cross-check, not truth
+  (see the reliability evidence above).
 
 ### What a full Datafordeler extract actually gives you (verified against the model)
 
@@ -116,27 +170,30 @@ grunddatamodel, here is what that extract does and does not contain for demoliti
   registration timestamps. **Registration history floor: `2017-06-02`** (BBR 1.8
   conversion); pre-2017 demolitions were deleted at conversion and are mostly
   unrecoverable here. So this extract is effectively a **2017→now** source.
-- ✅ **`BBRSag.sag012Byggesagskode`** = the demolition case. Clean current code is
-  **`6` "BR – Tilladelsessag Nedrivning"**. Legacy `2` "(UDFASES) Anmeldelsessag
-  (garager, carporte, udhuse og nedrivning)" and `5` "(UDFASES) øvrige" also cover
-  demolition but are noisy (code 2 mixes demolition with sheds/carports). Case is
-  dated by `sag002Byggesagsdato`.
+- ✅ **`Sagsniveau.sagstype ∈ {31 delvis, 32 hel}`** = the demolition case, linked
+  to the building. This is the primary handle. (`BBRSag.sag012Byggesagskode = 6`
+  "Tilladelsessag Nedrivning" is a secondary/older regulatory categorisation; legacy
+  `2`/`5` are `UDFASES` and noisy — code 2 mixes demolition with sheds/carports.)
 - ❌ **felt 294/295 (Anmeldelse / Gennemført nedrivning) are NOT distributed** —
-  absent from both `Bygning` and `BBRSag`. The felt-295 "gold" completion date is
-  not obtainable from Datafordeler. It lives only in the operational/historical
-  register → a KMD-style special extract, or DST microdata (forskerordning).
+  absent from `Bygning`, `BBRSag` and `Sagsniveau`. The felt-295 "gold" completion
+  *date* is not obtainable from Datafordeler; only the operational/historical
+  register (KMD-style extract) or DST microdata has it.
 
 **Best signal buildable from this extract:** `Bygning.status = 10 Historisk` ∩
-`BBRSag.sag012Byggesagskode = 6`, dated by the status-10 registration timestamp or
-`sag002Byggesagsdato`. Status-10 alone overcounts (re-registration/merge/error);
+`Sagsniveau.sagstype = 32`. Status-10 alone overcounts (re-registration/merge/error);
 a demolition case alone overcounts intent (no completion visible without felt 295);
 their intersection is the closest completion-proxy this dataset allows.
 
-**Sources:** BBR Teknik kodelister (Livscyklus; Byggesagskode); BBR Instruks §3.2.2
-Bygningsniveau, felt 290/292/294/295, §7.6.10 Indberetning ved nedrivning, §2.1.3
-BBR-historisk register; Datafordeler grunddatamodel `Bygning` + `BBRSag`
-objekttyper; Datafordeler Bitemporalitet (2017-06-02 floor); Datafordeler Hændelser
-(BBR).
+**TODO to verify in the extract:** which case date represents the completed
+demolition for a 31/32 case (candidates: `sag002Byggesagsdato` ≈ old felt 294
+notification; `sag010FuldførelseAfByggeri` possibly repurposed as the "gennemført"
+date). If neither lines up, date demolitions by the `status→10` registration
+timestamp.
+
+**Sources:** BBR Teknik kodelister (Livscyklus; **Sagstype 31/32**; Byggesagskode);
+BBR Instruks §3.2.2 Bygningsniveau, felt 290/292/294/295, §7.6.10 Indberetning ved
+nedrivning, §2.1.3 BBR-historisk register; Datafordeler grunddatamodel `Bygning` +
+`BBRSag` + `Sagsniveau` objekttyper; Datafordeler Bitemporalitet (2017-06-02 floor).
 
 ## What to benchmark against
 
