@@ -99,3 +99,10 @@ known fields get the expected types, identifiers are normalized, and the
 classification lookups are complete and non-overlapping. After the full
 conversion, we also checked that every non-missing municipality code maps to a
 region and every non-missing building-use code maps to a use group.
+
+The broader coverage and area assessment is generated separately with
+`.venv/bin/python -m src.data_quality` and documented in
+`docs/data_quality_report.md`.
+
+The filters applied after candidate-event detection are specified separately in
+`docs/analysis_filters.md`.

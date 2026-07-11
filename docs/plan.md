@@ -39,7 +39,8 @@ How sensitive are Danish demolition estimates to the choice of demolition indica
 
 4. How much do estimates change when observations with discontinued building-use codes are included or excluded?
 
-5. How sensitive are demolished-area estimates to the choice of area variable?
+5. How complete is the selected total-floor-area field, and which building
+   categories account for its missing or zero values?
 
 6. How do the resulting estimates compare with the BUILD estimates of “udgået byggeri”?
 
@@ -358,9 +359,8 @@ Field 294
 Field 295
 Construction year
 Building-use code
-Byg041BebyggetAreal
 Byg038SamletBygningsareal
-Other residential/commercial area fields used by BUILD
+Other area fields retained for data-quality diagnostics only
 Municipality
 Coordinates or address identifiers
 ```
@@ -521,21 +521,23 @@ Instead, report:
 
 ---
 
-## Analysis 6: Area-definition sensitivity
+## Analysis 6: Total-floor-area coverage
 
-Run each demolition indicator using:
+Use `Byg038SamletBygningsareal` as the sole area measure for all demolition
+indicators. Apply the same negative-value filter to every indicator. Do not
+construct a hybrid area measure or fill it from footprint. Apply the area
+filter after candidate events are detected so it cannot change the indicator
+definition itself. The exact shared rules and reconciliation outputs are
+specified in `docs/analysis_filters.md`.
 
-1. `Byg041BebyggetAreal`;
-2. `Byg038SamletBygningsareal`;
-3. a clearly documented hybrid definition;
-4. the closest possible reconstruction of the BUILD area definition.
-
-Investigate:
+Report:
 
 * overall missingness;
 * missingness by building use and year;
-* ratio between area variables where both exist;
-* how national and category-level estimates change.
+* zero and negative values;
+* the share of each indicator's candidate buildings with usable area;
+* the concentration of missing values among outbuildings;
+* building counts separately from summed square metres.
 
 ---
 
@@ -586,7 +588,7 @@ The first version of the paper probably needs around six to eight central output
 4. Annual demolished building count by indicator.
 5. Historical rates for discontinued versus replacement codes.
 6. Area estimates including and excluding ambiguous discontinued codes.
-7. Sensitivity to area definition.
+7. Coverage and exclusions for the selected total-floor-area field.
 8. Comparison with BUILD estimates.
 
 Additional lifecycle plots can go in an appendix.
@@ -627,4 +629,4 @@ Its contribution should be:
 
 A suitable core conclusion would be:
 
-> BBR lifecycle status, demolition-related process fields and completed-demolition dates capture different administrative aspects of demolition. None should automatically be interpreted as perfect evidence of full physical demolition. National estimates should therefore state their operational definition explicitly and report sensitivity to alternative indicators, area definitions and ambiguous historical object transitions.
+> BBR lifecycle status, demolition-related process fields and completed-demolition dates capture different administrative aspects of demolition. None should automatically be interpreted as perfect evidence of full physical demolition. National estimates should therefore state their operational definition explicitly, use a consistent total-floor-area measure, report its coverage, and examine sensitivity to alternative indicators and ambiguous historical object transitions.

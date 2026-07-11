@@ -1,0 +1,73 @@
+scope,building_use_group,column,label,row_count,null_count,null_pct,zero_count,sum_m2
+currently_effective,Agriculture,byg038SamletBygningsareal,Total floor area,565765,110015,19.445352752467898,76558,131142970
+currently_effective,Agriculture,byg039BygningensSamledeBoligAreal,Residential area,565765,562347,99.39586223962246,862,213288
+currently_effective,Agriculture,byg040BygningensSamledeErhvervsAreal,Commercial area,565765,112393,19.86566860799095,75643,134019469
+currently_effective,Agriculture,byg041BebyggetAreal,Building footprint,565765,68020,12.022659584809947,286,151930496
+currently_effective,Commerce & services,byg038SamletBygningsareal,Total floor area,194791,43825,22.49847272204568,18,110149431
+currently_effective,Commerce & services,byg039BygningensSamledeBoligAreal,Residential area,194791,177967,91.36305065429102,780,3078492
+currently_effective,Commerce & services,byg040BygningensSamledeErhvervsAreal,Commercial area,194791,40349,20.713996026510465,11,115901450
+currently_effective,Commerce & services,byg041BebyggetAreal,Building footprint,194791,43258,22.20739151192817,2068,85677176
+currently_effective,Housing,byg038SamletBygningsareal,Total floor area,2120993,234981,11.078820156407872,122,336992234
+currently_effective,Housing,byg039BygningensSamledeBoligAreal,Residential area,2120993,219466,10.347323164197148,90,364258741
+currently_effective,Housing,byg040BygningensSamledeErhvervsAreal,Commercial area,2120993,2047029,96.5127654829601,9225,6932660
+currently_effective,Housing,byg041BebyggetAreal,Building footprint,2120993,225227,10.618941222342555,13864,260666260
+currently_effective,Institutions,byg038SamletBygningsareal,Total floor area,82477,21259,25.775670793069583,6,42293747
+currently_effective,Institutions,byg039BygningensSamledeBoligAreal,Residential area,82477,78804,95.54663724432265,448,461478
+currently_effective,Institutions,byg040BygningensSamledeErhvervsAreal,Commercial area,82477,20490,24.843289644385706,5,47476299
+currently_effective,Institutions,byg041BebyggetAreal,Building footprint,82477,21222,25.730809801520422,381,30752923
+currently_effective,Leisure,byg038SamletBygningsareal,Total floor area,409532,36424,8.894054677045993,21,36728810
+currently_effective,Leisure,byg039BygningensSamledeBoligAreal,Residential area,409532,84104,20.536612523563484,200,22507219
+currently_effective,Leisure,byg040BygningensSamledeErhvervsAreal,Commercial area,409532,364178,88.92540753836086,532,14786488
+currently_effective,Leisure,byg041BebyggetAreal,Building footprint,409532,36263,8.854741509820967,208,35444813
+currently_effective,Outbuildings & other,byg038SamletBygningsareal,Total floor area,2711785,2705901,99.78302114658794,2676,10231
+currently_effective,Outbuildings & other,byg039BygningensSamledeBoligAreal,Residential area,2711785,2710120,99.9386013271701,915,-47761
+currently_effective,Outbuildings & other,byg040BygningensSamledeErhvervsAreal,Commercial area,2711785,2706892,99.81956534164766,2520,53621
+currently_effective,Outbuildings & other,byg041BebyggetAreal,Building footprint,2711785,136708,5.041255114251314,265,83225971
+currently_effective,Production & energy,byg038SamletBygningsareal,Total floor area,111299,17429,15.659619583284666,6,53162619
+currently_effective,Production & energy,byg039BygningensSamledeBoligAreal,Residential area,111299,108784,97.74032111699117,117,315389
+currently_effective,Production & energy,byg040BygningensSamledeErhvervsAreal,Commercial area,111299,17008,15.281359221556349,7,54472331
+currently_effective,Production & energy,byg041BebyggetAreal,Building footprint,111299,17584,15.798884087008869,316,49285058
+currently_effective,Transport,byg038SamletBygningsareal,Total floor area,22556,2556,11.331796417804576,1,8597918
+currently_effective,Transport,byg039BygningensSamledeBoligAreal,Residential area,22556,22286,98.80297925164037,25,95072
+currently_effective,Transport,byg040BygningensSamledeErhvervsAreal,Commercial area,22556,2539,11.25642844475971,0,9593570
+currently_effective,Transport,byg041BebyggetAreal,Building footprint,22556,2532,11.225394573505941,34,6526185
+currently_effective,,byg038SamletBygningsareal,Total floor area,30873,30002,97.17876461633142,1,192896
+currently_effective,,byg039BygningensSamledeBoligAreal,Residential area,30873,30415,98.51650309331778,0,68108
+currently_effective,,byg040BygningensSamledeErhvervsAreal,Commercial area,30873,30275,98.06303242315292,1,152621
+currently_effective,,byg041BebyggetAreal,Building footprint,30873,29559,95.74385385288116,60,174585
+currently_effective_status_10,Agriculture,byg038SamletBygningsareal,Total floor area,91117,2516,2.761284941339157,7087,20180463
+currently_effective_status_10,Agriculture,byg039BygningensSamledeBoligAreal,Residential area,91117,90898,99.75964968117914,45,12784
+currently_effective_status_10,Agriculture,byg040BygningensSamledeErhvervsAreal,Commercial area,91117,2762,3.031267491247517,6987,20852948
+currently_effective_status_10,Agriculture,byg041BebyggetAreal,Building footprint,91117,105,0.11523645422917787,0,21725536
+currently_effective_status_10,Commerce & services,byg038SamletBygningsareal,Total floor area,16307,17,0.10424970871404918,0,6803076
+currently_effective_status_10,Commerce & services,byg039BygningensSamledeBoligAreal,Residential area,16307,15482,94.94082295946527,39,115530
+currently_effective_status_10,Commerce & services,byg040BygningensSamledeErhvervsAreal,Commercial area,16307,19,0.11651438032746674,0,7164591
+currently_effective_status_10,Commerce & services,byg041BebyggetAreal,Building footprint,16307,12,0.0735880296805053,0,5664735
+currently_effective_status_10,Housing,byg038SamletBygningsareal,Total floor area,50160,32,0.06379585326953748,0,7330321
+currently_effective_status_10,Housing,byg039BygningensSamledeBoligAreal,Residential area,50160,35,0.06977671451355662,0,7893618
+currently_effective_status_10,Housing,byg040BygningensSamledeErhvervsAreal,Commercial area,50160,48170,96.03269537480064,194,254346
+currently_effective_status_10,Housing,byg041BebyggetAreal,Building footprint,50160,24,0.04784688995215311,0,6342038
+currently_effective_status_10,Institutions,byg038SamletBygningsareal,Total floor area,7043,2,0.02839698991906858,0,2953052
+currently_effective_status_10,Institutions,byg039BygningensSamledeBoligAreal,Residential area,7043,6903,98.0122107056652,13,28792
+currently_effective_status_10,Institutions,byg040BygningensSamledeErhvervsAreal,Commercial area,7043,6,0.08519096975720573,0,3190334
+currently_effective_status_10,Institutions,byg041BebyggetAreal,Building footprint,7043,2,0.02839698991906858,0,2403324
+currently_effective_status_10,Leisure,byg038SamletBygningsareal,Total floor area,22169,43,0.19396454508547972,0,1632861
+currently_effective_status_10,Leisure,byg039BygningensSamledeBoligAreal,Residential area,22169,3638,16.4103026749064,9,993748
+currently_effective_status_10,Leisure,byg040BygningensSamledeErhvervsAreal,Commercial area,22169,18720,84.44223916279489,8,653486
+currently_effective_status_10,Leisure,byg041BebyggetAreal,Building footprint,22169,44,0.19847534845956064,0,1598177
+currently_effective_status_10,Outbuildings & other,byg038SamletBygningsareal,Total floor area,241492,241015,99.80247792887549,202,35484
+currently_effective_status_10,Outbuildings & other,byg039BygningensSamledeBoligAreal,Residential area,241492,241377,99.95237937488612,106,646
+currently_effective_status_10,Outbuildings & other,byg040BygningensSamledeErhvervsAreal,Commercial area,241492,241036,99.81117386911367,190,35939
+currently_effective_status_10,Outbuildings & other,byg041BebyggetAreal,Building footprint,241492,294,0.12174316333460322,0,7990424
+currently_effective_status_10,Production & energy,byg038SamletBygningsareal,Total floor area,14217,27,0.18991348385735388,0,5060593
+currently_effective_status_10,Production & energy,byg039BygningensSamledeBoligAreal,Residential area,14217,14034,98.71280860941127,11,20566
+currently_effective_status_10,Production & energy,byg040BygningensSamledeErhvervsAreal,Commercial area,14217,29,0.20398114932826897,0,5212242
+currently_effective_status_10,Production & energy,byg041BebyggetAreal,Building footprint,14217,24,0.1688119856509812,0,4620407
+currently_effective_status_10,Transport,byg038SamletBygningsareal,Total floor area,2157,1,0.04636068613815485,0,759355
+currently_effective_status_10,Transport,byg039BygningensSamledeBoligAreal,Residential area,2157,2141,99.25822902178952,1,4992
+currently_effective_status_10,Transport,byg040BygningensSamledeErhvervsAreal,Commercial area,2157,1,0.04636068613815485,0,909808
+currently_effective_status_10,Transport,byg041BebyggetAreal,Building footprint,2157,2,0.0927213722763097,0,642549
+currently_effective_status_10,,byg038SamletBygningsareal,Total floor area,426,426,100.0,0,0
+currently_effective_status_10,,byg039BygningensSamledeBoligAreal,Residential area,426,426,100.0,0,0
+currently_effective_status_10,,byg040BygningensSamledeErhvervsAreal,Commercial area,426,426,100.0,0,0
+currently_effective_status_10,,byg041BebyggetAreal,Building footprint,426,426,100.0,0,0

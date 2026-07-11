@@ -1,0 +1,17 @@
+scope,metric,value,denominator,pct_of_denominator,note
+currently_effective,both_present,3036335.0,6250071,48.58080812201973,Both total floor area and footprint are recorded.
+currently_effective,total_only,11344.0,6250071,0.18150193813798277,Total floor area is recorded but footprint is missing.
+currently_effective,footprint_only,2633363.0,6250071,42.13332936537841,Footprint is recorded but total floor area is missing.
+currently_effective,neither_present,569029.0,6250071,9.104360574463874,Both principal area measures are missing.
+currently_effective,total_equals_residential_plus_commercial,1845857.0,3047679,60.5659913658886,Missing component values are treated as zero for this check.
+currently_effective,total_equals_residential_commercial_other,1855021.0,3047679,60.8666792007951,Missing component values are treated as zero for this check.
+currently_effective,floor_to_footprint_ratio_median,1.0,2941606,,Median ratio among rows where both measures are positive.
+currently_effective,floor_to_footprint_ratio_p95,1.952,2941606,,95th percentile ratio among rows where both measures are positive.
+currently_effective_status_10,both_present,200978.0,445088,45.15466604356891,Both total floor area and footprint are recorded.
+currently_effective_status_10,total_only,31.0,445088,0.006964914803364728,Total floor area is recorded but footprint is missing.
+currently_effective_status_10,footprint_only,243177.0,445088,54.63571248831692,Footprint is recorded but total floor area is missing.
+currently_effective_status_10,neither_present,902.0,445088,0.20265655331080595,Both principal area measures are missing.
+currently_effective_status_10,total_equals_residential_plus_commercial,163848.0,201009,81.51276808501112,Missing component values are treated as zero for this check.
+currently_effective_status_10,total_equals_residential_commercial_other,164148.0,201009,81.66201513365073,Missing component values are treated as zero for this check.
+currently_effective_status_10,floor_to_footprint_ratio_median,1.0,193689,,Median ratio among rows where both measures are positive.
+currently_effective_status_10,floor_to_footprint_ratio_p95,1.0,193689,,95th percentile ratio among rows where both measures are positive.

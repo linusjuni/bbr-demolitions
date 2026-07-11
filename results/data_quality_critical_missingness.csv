@@ -1,0 +1,103 @@
+entity,scope,column,dtype,row_count,missing_count,missing_pct,nan_count,zero_count
+bygning,temporal_rows,id_lokalId,String,33820994,0,0.0,0,
+bygning,temporal_rows,status,Int32,33820994,0,0.0,0,0
+bygning,temporal_rows,forretningsproces,Int32,33820994,3065,0.009062418449321744,0,13894331
+bygning,temporal_rows,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",33820994,0,0.0,0,
+bygning,temporal_rows,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",33820994,0,0.0,0,
+bygning,temporal_rows,kommunekode,String,33820994,0,0.0,0,
+bygning,temporal_rows,region_name,String,33820994,0,0.0,0,
+bygning,temporal_rows,byg021BygningensAnvendelse,Int32,33820994,142066,0.4200527045420368,0,0
+bygning,temporal_rows,building_use_group,String,33820994,142066,0.4200527045420368,0,
+bygning,temporal_rows,byg026Opførelsesår,Int64,33820994,5501997,16.2679931878998,0,3509
+bygning,temporal_rows,byg038SamletBygningsareal,Int64,33820994,14558867,43.046833573253345,0,161323
+bygning,temporal_rows,byg039BygningensSamledeBoligAreal,Int64,33820994,20189384,59.69482741991557,0,12176
+bygning,temporal_rows,byg040BygningensSamledeErhvervsAreal,Int64,33820994,27391217,80.98879944214531,0,195049
+bygning,temporal_rows,byg041BebyggetAreal,Int64,33820994,1537890,4.547146071460821,0,45453
+bygning,currently_effective,id_lokalId,String,6250071,0,0.0,0,
+bygning,currently_effective,status,Int32,6250071,0,0.0,0,0
+bygning,currently_effective,forretningsproces,Int32,6250071,1226,0.01961577716477141,0,655740
+bygning,currently_effective,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",6250071,0,0.0,0,
+bygning,currently_effective,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",6250071,0,0.0,0,
+bygning,currently_effective,kommunekode,String,6250071,0,0.0,0,
+bygning,currently_effective,region_name,String,6250071,0,0.0,0,
+bygning,currently_effective,byg021BygningensAnvendelse,Int32,6250071,30873,0.49396238858726566,0,0
+bygning,currently_effective,building_use_group,String,6250071,30873,0.49396238858726566,0,
+bygning,currently_effective,byg026Opførelsesår,Int64,6250071,988380,15.813900354091977,0,272
+bygning,currently_effective,byg038SamletBygningsareal,Int64,6250071,3202392,51.237689939842284,0,79409
+bygning,currently_effective,byg039BygningensSamledeBoligAreal,Int64,6250071,3994293,63.90796200555162,0,3437
+bygning,currently_effective,byg040BygningensSamledeErhvervsAreal,Int64,6250071,5341153,85.45747720305897,0,87944
+bygning,currently_effective,byg041BebyggetAreal,Int64,6250071,580373,9.285862512601858,0,17482
+bbrsag,temporal_rows,id_lokalId,String,6507234,0,0.0,0,
+bbrsag,temporal_rows,status,Int32,6507234,0,0.0,0,0
+bbrsag,temporal_rows,forretningsproces,Int32,6507234,0,0.0,0,129601
+bbrsag,temporal_rows,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",6507234,0,0.0,0,
+bbrsag,temporal_rows,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",6507234,0,0.0,0,
+bbrsag,temporal_rows,kommunekode,String,6507234,0,0.0,0,
+bbrsag,temporal_rows,region_name,String,6507234,0,0.0,0,
+bbrsag,temporal_rows,sag002Byggesagsdato,"Datetime(time_unit='us', time_zone='UTC')",6507234,1528204,23.484694111199936,0,
+bbrsag,temporal_rows,sag010FuldførelseAfByggeri,"Datetime(time_unit='us', time_zone='UTC')",6507234,5204799,79.98481382412251,0,
+bbrsag,temporal_rows,sag012Byggesagskode,Int32,6507234,6331,0.09729172179761784,0,0
+bbrsag,temporal_rows,sag008FærdigtBygningsareal,Int64,6507234,6416688,98.608533210885,0,82058
+bbrsag,currently_effective,id_lokalId,String,1792541,0,0.0,0,
+bbrsag,currently_effective,status,Int32,1792541,0,0.0,0,0
+bbrsag,currently_effective,forretningsproces,Int32,1792541,0,0.0,0,21080
+bbrsag,currently_effective,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",1792541,0,0.0,0,
+bbrsag,currently_effective,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",1792541,0,0.0,0,
+bbrsag,currently_effective,kommunekode,String,1792541,0,0.0,0,
+bbrsag,currently_effective,region_name,String,1792541,0,0.0,0,
+bbrsag,currently_effective,sag002Byggesagsdato,"Datetime(time_unit='us', time_zone='UTC')",1792541,315537,17.602777286544633,0,
+bbrsag,currently_effective,sag010FuldførelseAfByggeri,"Datetime(time_unit='us', time_zone='UTC')",1792541,624092,34.81605162727101,0,
+bbrsag,currently_effective,sag012Byggesagskode,Int32,1792541,283,0.01578764446670955,0,0
+bbrsag,currently_effective,sag008FærdigtBygningsareal,Int64,1792541,1773052,98.91277242752048,0,18531
+sagsniveau,temporal_rows,id_lokalId,String,8426674,0,0.0,0,
+sagsniveau,temporal_rows,status,Int32,8426674,0,0.0,0,0
+sagsniveau,temporal_rows,forretningsproces,Int32,8426674,0,0.0,0,156173
+sagsniveau,temporal_rows,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",8426674,0,0.0,0,
+sagsniveau,temporal_rows,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",8426674,0,0.0,0,
+sagsniveau,temporal_rows,kommunekode,String,8426674,0,0.0,0,
+sagsniveau,temporal_rows,region_name,String,8426674,0,0.0,0,
+sagsniveau,temporal_rows,niveautype,Int32,8426674,0,0.0,0,0
+sagsniveau,temporal_rows,sagstype,Int32,8426674,6687,0.07935515245991479,0,651459
+sagsniveau,temporal_rows,byggesag,String,8426674,0,0.0,0,
+sagsniveau,temporal_rows,stamdataBygning,String,8426674,4925350,58.449514007543186,0,
+sagsniveau,temporal_rows,sagsdataBygning,String,8426674,4925350,58.449514007543186,0,
+sagsniveau,currently_effective,id_lokalId,String,3945237,0,0.0,0,
+sagsniveau,currently_effective,status,Int32,3945237,0,0.0,0,0
+sagsniveau,currently_effective,forretningsproces,Int32,3945237,0,0.0,0,84582
+sagsniveau,currently_effective,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",3945237,0,0.0,0,
+sagsniveau,currently_effective,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",3945237,0,0.0,0,
+sagsniveau,currently_effective,kommunekode,String,3945237,0,0.0,0,
+sagsniveau,currently_effective,region_name,String,3945237,0,0.0,0,
+sagsniveau,currently_effective,niveautype,Int32,3945237,0,0.0,0,0
+sagsniveau,currently_effective,sagstype,Int32,3945237,3035,0.07692820482014134,0,476363
+sagsniveau,currently_effective,byggesag,String,3945237,0,0.0,0,
+sagsniveau,currently_effective,stamdataBygning,String,3945237,2483873,62.95877788837527,0,
+sagsniveau,currently_effective,sagsdataBygning,String,3945237,2483873,62.95877788837527,0,
+bygning,currently_effective_status_10,id_lokalId,String,445088,0,0.0,0,
+bygning,currently_effective_status_10,status,Int32,445088,0,0.0,0,0
+bygning,currently_effective_status_10,forretningsproces,Int32,445088,81,0.018198648357178805,0,138022
+bygning,currently_effective_status_10,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",445088,0,0.0,0,
+bygning,currently_effective_status_10,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",445088,0,0.0,0,
+bygning,currently_effective_status_10,kommunekode,String,445088,0,0.0,0,
+bygning,currently_effective_status_10,region_name,String,445088,0,0.0,0,
+bygning,currently_effective_status_10,byg021BygningensAnvendelse,Int32,445088,426,0.09571140987849594,0,0
+bygning,currently_effective_status_10,building_use_group,String,445088,426,0.09571140987849594,0,
+bygning,currently_effective_status_10,byg026Opførelsesår,Int64,445088,28358,6.371324322381192,0,259
+bygning,currently_effective_status_10,byg038SamletBygningsareal,Int64,445088,244079,54.83836904162772,0,7289
+bygning,currently_effective_status_10,byg039BygningensSamledeBoligAreal,Int64,445088,374934,84.23817312531455,0,224
+bygning,currently_effective_status_10,byg040BygningensSamledeErhvervsAreal,Int64,445088,311169,69.91179272413545,0,7379
+bygning,currently_effective_status_10,byg041BebyggetAreal,Int64,445088,933,0.20962146811417068,0,0
+bygning,currently_effective_not_status_10,id_lokalId,String,5804983,0,0.0,0,
+bygning,currently_effective_not_status_10,status,Int32,5804983,0,0.0,0,0
+bygning,currently_effective_not_status_10,forretningsproces,Int32,5804983,1145,0.019724433301527327,0,517718
+bygning,currently_effective_not_status_10,registreringFra,"Datetime(time_unit='us', time_zone='UTC')",5804983,0,0.0,0,
+bygning,currently_effective_not_status_10,virkningFra,"Datetime(time_unit='us', time_zone='UTC')",5804983,0,0.0,0,
+bygning,currently_effective_not_status_10,kommunekode,String,5804983,0,0.0,0,
+bygning,currently_effective_not_status_10,region_name,String,5804983,0,0.0,0,
+bygning,currently_effective_not_status_10,byg021BygningensAnvendelse,Int32,5804983,30447,0.5244976600276005,0,0
+bygning,currently_effective_not_status_10,building_use_group,String,5804983,30447,0.5244976600276005,0,
+bygning,currently_effective_not_status_10,byg026Opførelsesår,Int64,5804983,960022,16.537895115282854,0,13
+bygning,currently_effective_not_status_10,byg038SamletBygningsareal,Int64,5804983,2958313,50.96161349654254,0,72120
+bygning,currently_effective_not_status_10,byg039BygningensSamledeBoligAreal,Int64,5804983,3619359,62.34917483823811,0,3213
+bygning,currently_effective_not_status_10,byg040BygningensSamledeErhvervsAreal,Int64,5804983,5029984,86.64941826703024,0,80565
+bygning,currently_effective_not_status_10,byg041BebyggetAreal,Int64,5804983,579440,9.981769111124011,0,17482

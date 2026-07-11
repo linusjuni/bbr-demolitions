@@ -40,6 +40,19 @@ Use `--entity bygning`, `--entity bbrsag`, or `--entity sagsniveau` to process a
 single extract. Existing outputs are protected unless `--overwrite` is passed.
 The detailed description is in [docs/cleaning.md](docs/cleaning.md).
 
+## Data-quality assessment
+
+Generate coverage, missingness, and building-area diagnostics with:
+
+```bash
+.venv/bin/python -m src.data_quality
+```
+
+This writes small result tables to `results/`, an area-coverage figure, and the
+readable report at [docs/data_quality_report.md](docs/data_quality_report.md).
+The shared rules for indicator filtering and area reporting are documented in
+[docs/analysis_filters.md](docs/analysis_filters.md).
+
 ## Authors
 
 Linus, Theodor, Oscar (DTU/EPFL).
