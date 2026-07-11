@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.python-version
+
+# Raw BBR source data (too large to commit — see dataset/SOURCES.md)
+*.csv
+!results/*.csv
+
+# The slim dataset IS committed
+!dataset/*.parquet
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
