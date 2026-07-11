@@ -216,3 +216,50 @@ Better framing for the ablation:
   It's not in the public feed, but if we can get the historical register we should
   reconstruct it ourselves rather than trust KMD's opaque version — then all the
   public proxies can be scored against *our* reproducible felt-295 signal.
+
+## Ablation scope
+
+The point of the ablation is **not** to crown a single "best" indicator — there is
+no gold label to crown it against. It is to make the **consequence of the choice
+explicit**: swap only the demolition indicator, hold everything else fixed, and show
+how the downstream results move. Disagreement between indicators is a result in
+itself; the propagated effect on our actual output is the payload.
+
+### Indicators to ablate
+
+- **Single signals:** register-exit (`status = 10 Historisk`) alone · demolition
+  case (`sagstype = 32` hel) alone · demolition case incl. partial
+  (`sagstype ∈ {31, 32}`) · regulatory permit (`byggesagskode = 6`) alone.
+- **Combinations:** `status = 10 ∩ sagstype = 32` (the recommended completion-proxy)
+  · `status = 10 ∩ {31, 32}` · `status = 10 ∪ sagstype` (maximum recall).
+- **Change-detection:** riv-ned-byg-nyt via BBR flags (#5) · teardown-by-transaction
+  via OIS sales (#9, only if OIS is in scope).
+
+### External anchors (references, not indicators)
+
+- **KMD extract (#1/#8)** — a national, pre-2017 coverage cross-check, used with its
+  reliability caveats, never as truth.
+- **BOSSINF (#6)** — the one authoritative slice (grant-funded demolitions), used to
+  read a real precision/recall on that subset.
+
+### Confounds to hold fixed across every variant
+
+If these vary they get confounded with the indicator choice, so freeze them (or make
+one an explicit, separate axis):
+
+- **Time window** — restrict to the shared 2017→now period (the Datafordeler
+  registration-history floor); otherwise variants aren't comparable.
+- **Partial vs total demolition** — decide whether `sagstype 31` is in or out once,
+  or treat it as its own axis rather than letting it drift.
+- **Pending vs completed cases** — confirm completed `sagstype 31/32` cases persist
+  in the temporal extract before relying on the case signal.
+- **Building filters** — outbuildings, auto-generated "1000" buildings, and use-code
+  restrictions applied identically everywhere.
+
+### What the consequence is measured on
+
+Propagate each indicator through to the outputs the analysis actually reports —
+counts and demolished area, demolition rate relative to the stock, building
+lifespan / survival estimates, and the breakdowns by typology and geography — and
+report how each of these shifts as the indicator changes. Validate against BOSSINF
+on its slice for at least one anchored accuracy read.
