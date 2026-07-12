@@ -1,0 +1,115 @@
+%% =========================================================================
+\section{Methods}\label{sec:methods}
+
+The demolition indicators D1--D6 (Section~\ref{sec:indicators}) are
+applied to the cleaned extract of Section~\ref{sec:data}. This section
+describes the remaining analysis choices: the treatment of discontinued
+use codes, the floor-area measure, the quantities computed
+for each indicator, and the planned comparisons.
+
+\subsection{Treatment of discontinued use codes}\label{sec:discontinued-method}
+
+A fixed set of retired, round-number building-use codes (agricultural
+and industrial categories no longer issued) is associated with an
+ambiguous status-10 signal: earlier work found that a status-10 event on
+these codes sometimes reflects administrative re-registration rather
+than physical demolition. Rather than building this into a separate
+indicator, it is implemented as an orthogonal, on/off exclusion axis
+applicable to any of D1--D6 (Section~\ref{sec:indicators}); applying it
+to D1 reproduces the earlier inclusive/filtered contrast directly (D1:
+436{,}194 buildings; D1 with the exclusion applied: 302{,}261). Whether
+excluding these codes should be treated
+as a correction is, on the current extract, an open empirical question
+rather than an assumption: the exclusion strips approximately 34\,\% of
+every indicator's buildings uniformly, consistent with a base rate
+across the stock rather than concentrated artifacts, and among the
+status-10 buildings it would remove, 50.7\,\% also carry a formal
+demolition case, against a 44.2\,\% case-rate among the buildings it
+would keep --- so on this extract the exclusion also removes buildings
+with independent demolition evidence. Crossing every indicator with the
+axis on and off gives the full $7\times2$ comparison grid used in the
+ablation (Section~\ref{sec:comparisons}); whether the exclusion improves
+or worsens agreement with ground truth is intended to be settled against
+BOSSINF (Section~\ref{sec:comparisons}), not assumed.
+
+\subsection{Floor-area measure}\label{sec:areas}
+
+The primary area outcome is total building area,
+\texttt{byg038SamletBygningsareal}. This is the area concept used for the
+main demolished-square-metre totals and, where a stock denominator is
+available, for demolition rates by area. We use a single primary area
+field so that the ablation isolates the demolition indicator: the
+building set changes from D1 to D6, while the area definition is held
+fixed.
+
+This choice is also a comparability decision. \texttt{byg038} is BBR's
+registered total floor area and is the closest single field to the area
+concept used in service-life, building-stock, and material-flow
+applications. Its limitation is coverage, not interpretation:
+Section~\ref{sec:missingness} shows that \texttt{byg038} is missing for a
+large and non-random part of the stock, especially small outbuildings.
+Therefore a building with missing total area remains in the demolition
+count, but contributes no square metres to the area total; the number and
+share of buildings with non-missing total area are reported alongside the
+area estimates. Negative \texttt{byg038} values are excluded after
+candidate-event detection using the same rule for every indicator. Zero
+values are retained as recorded zero-area observations and reported in
+the coverage diagnostics rather than being treated as positive demolished
+area.
+
+Other BBR area fields are retained as diagnostics and sensitivity checks,
+but not as co-equal headline outcomes. The footprint
+\texttt{byg041BebyggetAreal} is nearly complete for historical buildings,
+but it measures ground coverage rather than floor area and is therefore
+not a substitute for \texttt{byg038}. The sum of residential and
+commercial area (\texttt{byg039}+\texttt{byg040}) is useful for comparison
+with BUILD's published analysis~\cite{jensen2025nedrivning}, but it is a
+different constructed area definition. These alternatives are reported as
+robustness or appendix material rather than used to define the main
+indicator comparison. A hybrid or imputed area measure---for example,
+filling missing total area from footprint and storeys---could be useful
+for estimating a more complete physical area flow, but it would introduce
+an additional modelling assumption and is therefore left outside the main
+indicator-sensitivity analysis.
+
+\subsection{Computed quantities}\label{sec:metrics}
+
+For each indicator, the following are computed by year: the number of
+demolitions; the demolished total area; the average and median demolished
+area per building; the coverage of \texttt{byg038}; and the demolition
+rate relative to the building stock where a valid denominator can be
+constructed. The same filters and aggregation logic are used for all
+indicators. Results are computed nationally, and by building-use group,
+region, and construction period where counts allow. For comparability of
+disaggregated results, use codes are grouped according to the 22-group
+mapping used by BUILD~\cite{jensen2025nedrivning}.
+\groupdecision{exact headline metric (annual demolished m$^2$; share of
+stock m$^2$ per year; count-based rates) --- open question \#1 in the
+project notes.}
+
+As defined in Section~\ref{sec:data}, annual series are produced over
+the full reporting window (2000--2025), while headline averages,
+windowed overlap, and rate comparisons use the main comparison window
+(2018--2025). The KMD comparison uses its own external-anchor window
+(2011--2019).
+
+\subsection{Planned comparisons}\label{sec:comparisons}
+
+%% From the analysis plan (docs/plan.md, Analyses 2, 7, 8): indicator
+%% overlap; BUILD reproduction; overlap with the independent extract.
+Three comparisons are planned alongside the scenario grid.
+\emph{Indicator agreement:} which buildings (and how much area) each
+indicator identifies, pairwise and jointly.
+\emph{BUILD:} a reproduction of BUILD's analysis setup---buildings
+constructed before 1999, retired 2012--2023, area as residential plus
+commercial floor area---against their published totals
+(Section~\ref{sec:build-comparison})~\cite{jensen2025nedrivning}.
+\emph{Independent demolition data:} overlap with an independently
+compiled national extract of reported demolition cases (2000--2020)
+previously used in published service-life
+research~\cite{andersen2022adaptation, andersen2023lifespan}, treated as
+a comparison source rather than ground truth, and with the register of
+grant-funded demolitions used in the evaluation of the village-renewal
+demolition subsidies~\cite{jensen2019landsbyfornyelse}.
+\groupdecision{final scope of the validation comparisons --- which of
+these are in the paper versus supplementary material.}

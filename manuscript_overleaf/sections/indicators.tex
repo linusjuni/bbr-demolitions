@@ -1,0 +1,314 @@
+%% =========================================================================
+%% Demolition-indicator theory section (2026-07-11 restructure).
+%% Consolidates the former BBR subsection "Demolition indicators used in
+%% prior register-based studies" and the former Methods subsection
+%% "Candidate demolition indicators" into one section: it first introduces
+%% the D1–D6 indicator set (from bbr-demolitions/src/indicators.py) with
+%% schematics and definitions, then maps prior published studies onto it.
+%% The indicator set is presented one indicator per subsubsection, in
+%% numeric order D1–D6, each with its own schematic figure.
+%% =========================================================================
+\section{Demolition indicators}\label{sec:indicators}
+
+No field in BBR directly flags a completed physical demolition
+(Section~\ref{sec:bbr-chain}). Every demolition indicator -- whether used
+in a prior published study or computed here -- is therefore a proxy: an
+observable register event, sometimes combined with filters intended to
+remove false positives.
+
+Because the completion fields are not distributed
+(Section~\ref{sec:bbr-chain}), this study defines a demolition
+operationally from the two traces of the workflow that \emph{are}
+observable: a building's own lifecycle-status and business-process
+history (\texttt{Bygning}), and its linked demolition case
+(\texttt{Sagsniveau}, \texttt{BBRSag}). This gives two families of
+indicators, contiguously numbered: D1--D3 from the building's own
+history, D4--D6 from its linked case. Section~\ref{sec:ind-set}
+illustrates the proxy mechanisms and defines the resulting six indicators,
+and Section~\ref{sec:lit-indicators} maps the set onto the choices made
+in prior published Danish studies.
+
+\subsection{Proxy mechanisms and the indicator set (D1--D6)}\label{sec:ind-set}
+
+The six indicators rest on a small number of proxy mechanisms, each an
+observable register event standing in for the unobserved physical demolition.
+All six are computed on the same dataset, clipped to the full reporting
+window (2000--2025 inclusive; Section~\ref{sec:data}) and are otherwise
+unfiltered; a building that matches an indicator but lacks a date under
+it (e.g., a linked case with no status-10 year) is kept rather than
+dropped, so that intersection indicators are not silently altered. Each
+indicator is presented in turn, D1 through D6, with its own schematic;
+the intersection indicators (D3 and D5) combine primitive signals
+defined just above them.
+
+\subsubsection*{Register-exit proxy (Indicator D1)}
+
+The register-exit signal reads the building's own history to identify
+when it leaves the active stock (Figure~\ref{fig:ind-d1}). D1 counts a
+building as demolished if its status ever became 10 (``Historisk''); the
+year is the earliest such effect date. This is the maximally inclusive
+register-exit signal: status 10 is also reached by re-registration,
+merges, and error correction, so D1 overcounts by design, and the
+current definition does not check for later reactivation to an active
+status. Discontinued use codes are treated as a separate, composable
+axis (Section~\ref{sec:discontinued-method}), not folded into D1 itself.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=6mm and 8mm]
+\node[ind] (a) {Building record is updated};
+\node[ind, below=of a] (b) {Lifecycle status becomes 10, ``Historisk'' (or \texttt{ObjStatus}\,=\,``udg{\aa}et'')};
+\node[ind, below=of b] (c) {Building treated as demolished};
+\draw[indarrow] (a) -- (b);
+\draw[indarrow] (b) -- (c);
+\end{tikzpicture}
+\caption{Register-exit proxy (indicator~D1): a building leaving the
+active stock is treated as demolished. This is the signal behind the
+register-exit studies in Table~\ref{tab:lit-indicators}.}
+\label{fig:ind-d1}
+\end{figure}
+
+\subsubsection*{Event-coded update proxy (Indicator D2)}
+
+This proxy relies entirely on the business-process code attached to a
+building's update history (Figure~\ref{fig:ind-d2}). D2 counts a building
+whose history ever carried \texttt{ForretningsProcess} 3 (``updated due
+to demolition''); the year is the earliest such effect date. D2 is not a
+subset of D1: on the current extract, 126{,}362 buildings carry process
+3 without ever reaching status 10, so this code is missed by many real
+demolitions that are registered through another workflow (undercount).
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=6mm and 8mm]
+\node[ind] (a) {Building record is updated};
+\node[ind, below=of a] (b) {Update is coded \texttt{ForretningsProcess}\,=\,3, ``updated due to demolition''};
+\node[ind, below=of b] (c) {Building treated as demolished};
+\draw[indarrow] (a) -- (b);
+\draw[indarrow] (b) -- (c);
+\end{tikzpicture}
+\caption{Event-coded update proxy (indicator~D2): treats the
+demolition-coded record update as the demolition signal.}
+\label{fig:ind-d2}
+\end{figure}
+
+\subsubsection*{Register exit and demolition process (Indicator D3)}
+
+This proxy fires only where the register exit (D1) coincides with the
+demolition-coded update (D2) on the same building
+(Figure~\ref{fig:ind-d3}). D3 is the intersection D1 $\cap$ D2, dated by
+D1's register-exit year. Because D2 is not a subset of D1, D3 is markedly
+smaller than either indicator alone.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=16mm and 10mm]
+\node[ind, text width=4.7cm] (a) {Register exit: status 10, ``Historisk'' (D1)};
+\node[ind, text width=4.7cm, right=of a] (b) {Demolition-coded update: \texttt{ForretningsProcess}\,=\,3 (D2)};
+\node[ind, text width=6.2cm, below=of $(a.south)!0.5!(b.south)$] (c) {Both signals present: building treated as demolished, dated by the register exit};
+\draw[indarrow] (a.south) -- (c.north);
+\draw[indarrow] (b.south) -- (c.north);
+\end{tikzpicture}
+\caption{Intersection proxy (indicator~D3): requires the register exit
+(D1) to coincide with the demolition process code (D2).}
+\label{fig:ind-d3}
+\end{figure}
+
+\subsubsection*{Total demolition case (Indicator D4)}
+
+From here the proxies read the building's linked demolition case rather
+than its status history. A case is tied to a building through the
+\texttt{stamdataBygning} field on \texttt{Sagsniveau}, which names the
+building the case is filed on; D4 keeps only total-demolition cases
+(Figure~\ref{fig:ind-d4}). D4 counts a building linked, via
+\texttt{Sagsniveau}, to a demolition case of type
+\texttt{sagstype}\,=\,32 (``Nedrivning hel,'' total). Partial-demolition
+cases (\texttt{sagstype}\,=\,31, ``Nedrivning delvis'') also exist in the
+register but qualify no indicator in this study, since a partially
+demolished building generally remains standing. The year is the
+building's own status-10 date where available, and left undated
+otherwise. Roughly 82{,}000 demolition-case rows carry no linkable
+building (\texttt{stamdataBygning} null) and are necessarily excluded, an
+undercount shared with D6.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=6mm and 8mm]
+\node[ind] (a) {Demolition case linked to the building (\texttt{Sagsniveau}, \texttt{stamdataBygning})};
+\node[ind, below=of a] (b) {Case type is \texttt{sagstype}\,=\,32, ``Nedrivning hel'' (total)};
+\node[ind, below=of b] (c) {Building treated as demolished; dated by its status-10 exit where available};
+\draw[indarrow] (a) -- (b);
+\draw[indarrow] (b) -- (c);
+\end{tikzpicture}
+\caption{Demolition-case proxy, total (indicator~D4): a building linked
+to a total-demolition case is treated as demolished, dated by its
+register exit.}
+\label{fig:ind-d4}
+\end{figure}
+
+\subsubsection*{Register exit and total demolition case (Indicator D5)}
+
+This proxy requires the register exit (D1) to coincide with a linked
+total-demolition case (D4) on the same building
+(Figure~\ref{fig:ind-d5}). D5 is the intersection D1 $\cap$ D4, dated by
+D1's register-exit year: a building that both left the active stock and
+has a linked total-demolition case.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=16mm and 10mm]
+\node[ind, text width=4.7cm] (a) {Register exit: status 10, ``Historisk'' (D1)};
+\node[ind, text width=4.7cm, right=of a] (b) {Linked total-demolition case: \texttt{sagstype}\,=\,32 (D4)};
+\node[ind, text width=6.2cm, below=of $(a.south)!0.5!(b.south)$] (c) {Both signals present: building treated as demolished, dated by the register exit};
+\draw[indarrow] (a.south) -- (c.north);
+\draw[indarrow] (b.south) -- (c.north);
+\end{tikzpicture}
+\caption{Intersection proxy (indicator~D5): requires the register exit
+(D1) to coincide with a linked total-demolition case (D4).}
+\label{fig:ind-d5}
+\end{figure}
+
+\subsubsection*{Case-date proxy for felt 295 (Indicator D6)}
+
+D6 dates a linked total-demolition case by its notification date,
+standing in for the undistributed completion field felt 295
+(Figure~\ref{fig:ind-d6}). D6 counts a building linked to a
+total-demolition case (\texttt{sagstype}\,=\,32, as in D4) with a non-null
+case notification date (\texttt{sag002 Byggesagsdato}, the approximate
+counterpart of the undistributed felt 294 notification field); the year
+is that date. Felt 295 itself is not reconstructable from this extract
+(Section~\ref{sec:bbr-chain}): the one candidate completion field carried
+by the case data (\texttt{sag010 FuldførelseAfByggeri}) is both sparse
+and typically dates a co-filed construction case rather than the
+demolition, so it is not used. D6 therefore dates demolition
+\emph{notification}, not confirmed completion.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=6mm and 8mm]
+\node[ind] (a) {Total-demolition case linked to the building (\texttt{sagstype}\,=\,32)};
+\node[ind, below=of a] (b) {Case carries a notification date (\texttt{sag002 Byggesagsdato}, $\approx$ felt 294)};
+\node[ind, below=of b] (c) {Building treated as demolished; dated by the notification date};
+\draw[indarrow] (a) -- (b);
+\draw[indarrow] (b) -- (c);
+\end{tikzpicture}
+\caption{Case-date proxy (indicator~D6): a linked total-demolition case
+is dated by its notification date, an approximation of the undistributed
+felt~295 completion signal.}
+\label{fig:ind-d6}
+\end{figure}
+
+None of D1--D6 is treated as a reference indicator in this study, and
+none is scored against another as ground truth; Sections~\ref{sec:comparisons}
+and~\ref{sec:results} describe how the six are compared and validated
+instead.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{The demolition-indicator set computed in this study, unfiltered
+building counts windowed to 2000--2025 (denominator: 6{,}250{,}075
+buildings in the extract).}
+\label{tab:d-indicators}
+\begin{tabular}{@{}lp{7.4cm}r@{}}
+\toprule
+ID & Signal & Buildings \\
+\midrule
+D1 & status = 10 & 436{,}194 \\
+D2 & forretningsproces = 3 & 225{,}706 \\
+D3 & D1 $\cap$ D2 & 99{,}664 \\
+D4 & sagstype = 32 (total) & 237{,}012 \\
+D5 & D1 $\cap$ D4 & 200{,}634 \\
+D6 & sagstype = 32 with notification date & 231{,}962 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Demolition indicators in prior register-based studies}\label{sec:lit-indicators}
+
+Table~\ref{tab:lit-indicators} lists the approach and key filters used
+by published Danish studies that estimate building demolition from BBR or
+a BBR-derived extract, and, in its second column, the indicator in the
+set above (Section~\ref{sec:ind-set}) that rests on the same register
+signal. The register-exit and event-coded studies map directly onto D1
+and D2. Two further approaches used in the literature have no direct
+counterpart in the D1--D6 set, because both reach outside the register
+signals this study computes: studies working from a pre-made, opaque
+demolition extract, whose filtering recipe is not
+published;\footnote{The recipe is unpublished, but the underlying signal is
+recoverable. For the one such extract we hold --- the KMD/Andersen
+extract~\cite{andersen2022adaptation} --- every case is a total demolition
+(\texttt{sagstype = 32}), and the case-based indicator reproduces its
+membership to $\sim$99\,\% window-matched (Section~\ref{sec:kmd}). So it
+corresponds empirically to the case family D4--D6, even though the authors
+state no register field that identifies it.} and change-detection studies,
+which infer demolition from a teardown-and-rebuild sequence rather than
+from a demolition signal on the building itself.
+
+Two entries in Table~\ref{tab:lit-indicators} fall outside the proxy
+scheme entirely. SBi's evaluation of village-renewal demolition
+subsidies~\cite{jensen2019landsbyfornyelse} additionally draws on
+BOSSINF, the administrative register of grant-funded demolitions: this
+is genuine ground truth rather than a proxy, but limited to subsidised
+cases in 54 eligible municipalities. Aagaard et
+al.~\cite{aagaard2013levetider} do not detect individual demolitions at
+all; they assume an aggregate demolition rate ($\approx$0.3\,\%/yr)
+derived from construction-cost statistics, which underlies the standard
+Danish service-life tables and is the baseline that later extract-based
+studies benchmark against.
+
+\begin{table}[h!]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{5pt}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\caption{Demolition indicators (proxies) and filters used in prior
+published Danish register-based studies, and the corresponding indicator
+in this study's set (Section~\ref{sec:ind-set}).}
+\label{tab:lit-indicators}
+\begin{tabular}{@{}L{0.25\linewidth}L{0.31\linewidth}L{0.34\linewidth}@{}}
+\toprule
+Study & Approach (corresponding indicator) & Key filters \\
+\midrule
+Aagaard et al.\ (2013)~\cite{aagaard2013levetider} &
+  Not a detection method (n/a) &
+  n/a \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+{\O}stergaard et al.\ (2018)~\cite{ostergaard2018temporal} &
+  Opaque extract (no direct D-indicator) &
+  Missing/duplicate records dropped; lifespan $<5$\,yr dropped; built
+  before 1800 dropped \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+SBi (2019:01)~\cite{jensen2019landsbyfornyelse} &
+  Register-exit (D1); plus BOSSINF ground truth &
+  Residential codes only; 54 eligible municipalities \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+Andersen \& Negendahl (2022)~\cite{andersen2022adaptation} &
+  Opaque extract (no direct D-indicator) &
+  Pre-2011 records discarded \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+BUILD (2022:36)~\cite{jensen2022enfamiliehuse} &
+  Change detection, BBR flag (outside D1--D6) &
+  Code 120 only; same matrikel; rebuild after 2010 \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+Andersen \& Negendahl (2023)~\cite{andersen2023lifespan} &
+  Opaque extract (no direct D-indicator) &
+  Missing date/area/use dropped; pre-2010 dropped; construction year
+  ``1000'' (auto-generated) dropped \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+Boligøkonomisk Videncenter (2023)~\cite{blv2023karakteristika} &
+  Change detection, transaction (outside D1--D6) &
+  Arms-length sales only; plot 500--2{,}000\,m$^2$; price
+  15--15{,}000\,kr/m$^2$; matrikel age $\geq$20\,yr \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+BUILD (2025)~\cite{jensen2025nedrivning} &
+  Register-exit (D1) &
+  Buildings built before 1999 only \\
+\addlinespace[2pt]\cmidrule(l{0pt}r{0pt}){1-3}\addlinespace[2pt]
+Droob et al.\ (2026)~\cite{droob2026servicelife} &
+  Event-coded update (D2) &
+  Outbuildings removed \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,184 @@
+%% =========================================================================
+\section{The Danish Building and Housing Register (BBR)}\label{sec:bbr}
+
+\draftnote{This section is descriptive and drafted in full: it renders
+the register facts we verified against the official BBR code lists, the
+grunddata object model, and the BBR case-processing instructions
+(docs/indicator-decision.md and docs/indicators.md), plus the published
+BUILD reports. Please check the wording against the sources; nothing
+here should be new analysis.}
+
+\subsection{Purpose, structure, and distribution}\label{sec:bbr-structure}
+
+The Danish Building and Housing Register (Bygnings- og Boligregistret,
+BBR) is the national administrative register of buildings and dwellings,
+established by the Building and Housing Registration Act of 1976
+(BBR-loven)~\cite{bbrloven}. It is maintained by the municipalities, and
+%% NOTE: the register became operational/was populated in 1977; add that
+%% detail only with a verified source if the group wants it.
+property owners are obliged to report changes affecting their buildings.
+The register is distributed through the national data portal, the Danish
+Data Distributor (Datafordeler), as part of the Danish common
+public-sector data program~\cite{datafordeler_grunddatamodel}.
+
+The central object for this study is the building (\texttt{Bygning}).
+Records are versioned and bitemporal~\cite{bbr_bitemporalitet}: each
+version carries registration timestamps (\emph{registreringstid}, when
+the version was recorded in the register) and effect timestamps
+(\emph{virkningstid}, \texttt{virkningFra}/\texttt{virkningTil}, when
+the described state applied). A building's register history is a
+sequence of such versions. Datafordeler distributes both a
+current-state view of the register and extracts that include the full
+version history, i.e., all versions and all lifecycle statuses.
+
+Two properties of this distribution matter for demolition analysis.
+First, a completed demolition removes the building from the
+current-state view, so demolished buildings are absent from a current
+snapshot; analyses must use the history-including extract, in which the
+building is retained with a lifecycle status of
+``historical''~\cite{datafordeler_grunddatamodel}. Second, the
+register's history on Datafordeler begins at the conversion of BBR
+(version 1.8) to the common data model: all data converted at that
+point carry the registration timestamp 2~June~2017, and the official
+documentation warns that queries with registration or effect times
+before that date may return missing or incomplete
+data~\cite{bbr_bitemporalitet}.
+
+\subsection{How a demolition is recorded}\label{sec:bbr-chain}
+
+Alongside buildings, BBR registers building cases (byggesager): the
+administrative cases under which municipalities process construction,
+alteration, and demolition matters. A case is linked to the buildings
+it concerns and carries a case type, case dates, and a case
+status~\cite{bbr_instruks, datafordeler_grunddatamodel}. BBR's
+case-processing instructions define a demolition workflow on this
+basis~\cite{bbr_instruks}. A demolition is handled as a building case
+of the demolition type: historically case type (felt 290) 3,
+``Nedrivning (hel eller delvis)'', which the current distributed code
+list splits into \texttt{sagstype} 31 (partial) and 32
+(total)~\cite{bbr_kodelister}. The case carries a notification date
+(felt 294, ``Anmeldelse af nedrivning''). When the demolition is
+reported physically completed, the completion date (felt 295,
+``Gennemf{\o}rt nedrivning'') is recorded; reporting felt 295 removes
+the building from the current stock, and its lifecycle status becomes
+10, ``Historisk''~\cite{bbr_instruks}.
+
+The completion fields themselves, however, are not part of the
+distributed data: felt 294 and felt 295 exist in the operational
+register but are not exposed as attributes of the distributed building
+or case objects~\cite{datafordeler_grunddatamodel}. What the public
+distribution carries instead are two traces of the workflow: the
+lifecycle-status change of the building, and the linked demolition case.
+Published register-based studies have accordingly worked with one or
+both of these traces, or with extracts compiled by parties with access
+to the operational register (Section~\ref{sec:indicators}).
+
+\subsection{Observable demolition-related attributes}\label{sec:bbr-fields}
+
+Three distributed attribute families carry demolition-related
+information. Code semantics below are taken from the official BBR code
+lists~\cite{bbr_kodelister} and the grunddata object-type
+catalog~\cite{datafordeler_grunddatamodel}.
+
+\paragraph{Lifecycle status (\texttt{Bygning.status}).}
+Table~\ref{tab:status-codes} lists the relevant codes. Status 10
+(``Historisk'') is the state a completed demolition leads to. The code
+list also defines a separate terminal state for erroneous registrations,
+status 11 (``Fejlregistreret'').
+
+\begin{table}[htbp]
+\centering
+\caption{Lifecycle (Livscyklus) codes of the distributed building object
+relevant to demolition analysis~\cite{bbr_kodelister}.}
+\label{tab:status-codes}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Code & Label (Danish) & Meaning \\
+\midrule
+6  & Opf{\o}rt            & Completed, in active stock \\
+7  & G{\ae}ldende         & Current/valid, in active stock \\
+10 & Historisk            & Historical: out of the active stock \\
+11 & Fejlregistreret      & Erroneous registration (separate terminal state) \\
+13 & Delvis Afsluttet     & Partially completed \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Business process (\texttt{Bygning.forretningsproces}).}
+Each record version carries a code stating the business event that
+caused the update; Table~\ref{tab:bp-codes} lists the codes relevant
+here. Code 3 (``Opdateret grundet nedrivning'') marks an update due to
+demolition. The list also names several non-demolition causes of record
+updates, including error correction (4), splits and merges (6, 7),
+synchronization with other base registers (12--15), and cadastral
+restructuring (17).
+
+\begin{table}[htbp]
+\centering
+\caption{Business-process (ForretningsProcess) codes relevant to
+demolition analysis~\cite{bbr_kodelister}.}
+\label{tab:bp-codes}
+\begin{tabular}{@{}lp{6.2cm}l@{}}
+\toprule
+Code & Label (Danish, abbreviated) & Event \\
+\midrule
+1      & Oprettet grundet nybyggeri & Creation (new construction) \\
+2      & Opdateret grundet til/ombygning & Renovation/extension \\
+3      & Opdateret grundet nedrivning & Update due to demolition \\
+4      & Fejlrettelse af faktiske fejlregistreringer & Error correction \\
+5      & Faktisk udf{\o}rt {\ae}ndring uden byggesagsbehandling & Change without building case \\
+6, 7   & Opdeling / Sammenl{\ae}gning af enheder & Split / merge \\
+12--15 & Opdateret grundet {\ae}ndring i grunddataregister & Base-register synchronization \\
+17     & Matrikul{\ae}r {\ae}ndring & Cadastral restructuring \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Building cases.}
+Distributed case objects link buildings to building cases. Two codings
+identify demolition cases: the current case-type list
+(\texttt{Sagsniveau.sagstype} 31 partial / 32 total demolition) and the
+older regulatory case code (\texttt{BBRSag.sag012Byggesagskode}), where
+code 6 (``Tilladelsessag Nedrivning'') is the demolition permit case and
+legacy codes 2 and 5 are marked as being phased out; legacy code 2
+covers demolition notifications together with minor-structure
+notifications (garages, carports, sheds)~\cite{bbr_kodelister}.
+
+\subsection{Floor-area attributes}\label{sec:bbr-areas}
+
+The building object carries several area
+attributes~\cite{datafordeler_grunddatamodel}:
+
+\begin{itemize}
+  \item \texttt{byg038SamletBygningsareal} --- total building area (sum
+        of floor areas across storeys);
+  \item \texttt{byg041BebyggetAreal} --- built-up area (ground-floor
+        footprint);
+  \item \texttt{byg039BygningensSamledeBoligAreal} and
+        \texttt{byg040BygningensSamledeErhvervsAreal} --- the
+        residential and commercial floor-area components. Their sum is
+        the area definition used in BUILD's national demolition
+        analysis~\cite{jensen2025nedrivning};
+  \item \texttt{byg054AntalEtager} --- the number of storeys.
+\end{itemize}
+
+The completeness of each attribute in the current extract is reported in
+Section~\ref{sec:missingness}. \draftnote{Per our data rules, the
+missingness figures we know from earlier work (byg038 $\approx$44\,\%
+missing, byg041 $\approx$0.01\,\%) are not stated here --- they are
+recomputed on the fresh extract and enter the paper only from
+\texttt{results/}.}
+
+\subsection{Data-quality context}\label{sec:bbr-quality}
+
+Register information is reported by property owners and processed by
+municipalities \refneeded{Rigsrevisionen report on BBR data quality; DR
+(2023) survey --- to be verified and added, or dropped}. The register
+has been through system migrations, most recently the 2017 conversion to
+the common data model (Section~\ref{sec:bbr-structure}). BUILD's
+analysis of retired buildings notes that retirement from the register is
+presumed, but not certain, to mean demolition; that retired areas are
+probably overestimated; and that buildings registered as retired but
+constructed after 1998 largely could not be confirmed as demolished in
+manual spot checks, which led BUILD to restrict their analysis to
+buildings constructed before 1999~\cite{jensen2025nedrivning}.

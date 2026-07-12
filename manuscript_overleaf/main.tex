@@ -1,0 +1,142 @@
+%% =========================================================================
+%% Manuscript for the Journal of Building Engineering (Elsevier)
+%% Class: elsarticle (vendored in this folder — no TeX package install needed;
+%%        also works as-is on Overleaf: upload the whole manuscript/ folder)
+%%
+%% Compile:  pdflatex main && bibtex main && pdflatex main && pdflatex main
+%%
+%% Class options:
+%%   [review]   — double line spacing + line numbers (use for SUBMISSION)
+%%   [preprint] — single spacing, no line numbers (use for internal drafts)
+%%   [5p,twocolumn] — approximates final journal layout (for length checks)
+%%
+%% STRUCTURE (2026-07-11): main.tex holds only the preamble, front matter,
+%% and bibliography; each section lives in its own file under sections/ and
+%% is pulled in with \input below. Edit the section files, not this one, for
+%% prose changes.
+%%
+%% OUTLINE DRAFT — structure + the parts writable before the analysis
+%% results exist. Sources: the team's planning docs
+%% (bbr-demolitions/docs/plan.md, indicators.md, indicator-decision.md),
+%% the verified BBR code lists, and the published papers on file.
+%% No analytical conclusions are drawn in this draft; those are written by
+%% the group once results/ is populated.
+%%
+%% Marker legend (all colored, all must be gone before submission):
+%%   \pending{...}       orange — awaiting the analysis run (Linus & Oscar)
+%%   \groupdecision{...} purple — open decision for the whole group
+%%   \refneeded{...}     red    — claim needs a verified reference
+%%   \slotfor{...}{...}  blue   — section/paragraph reserved for Rune/Nicolai
+%%   \draftnote{...}     gray   — note to co-authors about the draft itself
+%% =========================================================================
+\documentclass[preprint,12pt]{elsarticle}
+
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{float} % enables [H] to pin the indicator schematics in place
+
+% ---- Draft-status markers (remove before submission) --------------------
+\newcommand{\pending}[1]{\textcolor{orange!85!black}{\textbf{[PENDING:} #1\textbf{]}}}
+\newcommand{\groupdecision}[1]{\textcolor{violet}{\textbf{[GROUP DECISION:} #1\textbf{]}}}
+\newcommand{\refneeded}[1]{\textcolor{red}{\textbf{[REF:} #1\textbf{]}}}
+\newcommand{\slotfor}[2]{\begin{quote}\color{blue!65!black}\itshape\textbf{[SLOT --- #1]} #2\end{quote}}
+\newcommand{\draftnote}[1]{\begin{quote}\color{gray}\small\itshape #1\end{quote}}
+
+% ---- Style for the indicator-mechanism schematics (Section~\ref{sec:ind-mechanisms}) ----
+\tikzset{
+  ind/.style={draw, thick, rounded corners, align=center, text width=5.3cm,
+              minimum height=0.65cm, inner sep=4pt, font=\footnotesize},
+  indnote/.style={font=\scriptsize\itshape, align=left, text width=4.0cm},
+  indarrow/.style={-{Latex[length=2.2mm]}, thick}
+}
+
+% Journal name for the footer of the title page
+\journal{Journal of Building Engineering}
+
+\begin{document}
+
+\begin{frontmatter}
+
+%% TODO: working title — refine with the group
+\title{Sensitivity of national building demolition statistics to
+       register-based indicator and floor-area assumptions:
+       evidence from the Danish Building and Housing Register}
+
+%% Authors and affiliations.
+%% TODO: decide author order, corresponding author; Rune and Nicolai
+%%       expected as co-authors per the agreed writing split (JOBE: no
+%%       authorship changes after acceptance!). Affiliations to be added.
+\author[dtu]{Theodor Dornonville de la Cour}
+\author[dtu]{Linus Juni}
+\author[dtu]{Oscar Johan H{\o}eg Wohlfahrt}
+\author[dtu]{Nicolai Siim Larsen}
+\author[dtu]{Rune Andersen}
+%\author[dtu]{Nicolai Siim Larsen}   % TODO: confirm authorship + affiliation
+%\author[dtu2]{Rune Andersen}        % TODO: confirm authorship + affiliation
+
+\affiliation[dtu]{organization={Technical University of Denmark, Department of Applied Mathematics and Computer Science},
+                  addressline={Richard Petersens Plads, Building 324},
+                  city={Kgs.\ Lyngby},
+                  postcode={2800},
+                  country={Denmark}}
+%\affiliation[dtu2]{organization={Technical University of Denmark, Department of Environmental and Resource Engineering},
+%                  city={Kgs.\ Lyngby}, postcode={2800}, country={Denmark}}
+
+%% TODO: abstract, max 250 words, standalone, no undefined abbreviations,
+%%       no citations. To be written by the group once results exist.
+\begin{abstract}
+[TODO: 2--3 sentences on purpose: demolition estimates from the Danish
+Building and Housing Register (BBR) depend on how ``a demolition'' and
+``floor area'' are operationalized; this study quantifies that
+sensitivity.]
+[TODO: 2--3 sentences on method: the same demolition-rate computation
+repeated under each candidate demolition indicator crossed with each
+candidate floor-area measure, on a complete BBR extract (including
+historical records) through 2025.]
+[TODO: principal quantitative result: the spread across scenarios.]
+[TODO: comparison with published BUILD figures.]
+[TODO: main conclusion and recommendation --- \emph{to be decided by the
+group from the results}.]
+\end{abstract}
+
+%% 1-7 keywords, no "and"/"of" constructions
+\begin{keyword}
+Building demolition \sep Building stock \sep Service life \sep
+Building register \sep Data quality \sep Denmark
+\end{keyword}
+
+\end{frontmatter}
+
+%% =========================================================================
+%% Section files (edit these for prose changes).
+%% =========================================================================
+\input{sections/introduction}
+\input{sections/bbr}
+\input{sections/data}
+\input{sections/indicators}
+\input{sections/methods}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+\input{sections/declarations}
+
+%% =========================================================================
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+%% =========================================================================
+%% \appendix
+%% \section{Full code lists}  — TODO: complete Livscyklus /
+%%   ForretningsProcess / case-type lists with access date, if the group
+%%   wants them in the paper (source: \cite{bbr_kodelister}).
+%% \section{Lifecycle-history patterns} — plan.md suggests additional
+%%   lifecycle plots go in an appendix.
+
+\end{document}
