@@ -24,8 +24,9 @@ from `indicators.all_variants()`) the driver attaches outcome measures and write
 | `results/ablation_summary.csv` | one row / variant | count, plus total m² / median m² / coverage % under **each** of 3 area definitions |
 | `results/annual.csv` | variant × year | count + m² per area definition (dated buildings only) |
 | `results/by_region.csv` | variant × region | count + floor-area m² (uses the `region_name` column) |
-| `results/overlap.csv` | indicator × indicator | pairwise intersection + Jaccard, 7 base indicators |
-| `results/figures/*.png` + `*.pdf` | — | `annual_counts`, `annual_area_etage`, `area_definition_sensitivity`, `overlap_heatmap` |
+| `results/overlap.csv` | indicator × indicator | pairwise intersection + Jaccard, 7 base indicators, full 2000-2025 window |
+| `results/overlap_2018_2025.csv` | indicator × indicator | same overlap calculation, restricted to dated 2018-2025 memberships |
+| `results/figures/*.png` + `*.pdf` | — | `annual_counts`, `annual_area_etage`, `area_definition_sensitivity`, `overlap_heatmap`, `overlap_heatmap_2018_2025` |
 
 The indicators themselves return only `building_id` + `year` (the *membership* of the
 demolished set). Everything else — area, use-code, region, construction year — is rolled

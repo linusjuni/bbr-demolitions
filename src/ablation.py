@@ -32,6 +32,7 @@ Outputs (written under ``results/``):
     by_region.csv          variant × region: count and floor-area m²
     cleaning_report.csv    erroneous values removed per rule × (all stock, each indicator)
     overlap.csv            pairwise intersection + Jaccard among the 7 base indicators
+    overlap_2018_2025.csv  same, restricted to dated 2018-2025 memberships
     figures/*.png + *.pdf  annual_counts, annual_area_etage,
                            area_definition_sensitivity, overlap_heatmap
                            (rendered by src/plotting.py — seaborn, English labels)
@@ -54,6 +55,7 @@ FIGURES = RESULTS / "figures"
 # The three area definitions swept side by side. `etage` (BUILD's bolig+erhverv basis)
 # is derived below; the other two are raw columns. Order = increasing missingness.
 AREA_DEFS = ["footprint", "total", "etage"]
+OVERLAP_WINDOW = (2018, 2025)
 
 
 # --- Per-building attribute rollup ------------------------------------------
@@ -230,18 +232,29 @@ def by_region(label: str, demolished: pl.LazyFrame, attrs: pl.LazyFrame) -> pl.D
     return out.insert_column(0, pl.Series("variant", [label] * out.height))
 
 
-def overlap() -> pl.DataFrame:
-    """Pairwise intersection + Jaccard among the 7 base indicators (axis off)."""
-    sets = {
-        i.id: i.build().select("building_id").collect()["building_id"]
-        for i in ind.all_indicators()
-    }
+def overlap(year_min: int | None = None, year_max: int | None = None) -> pl.DataFrame:
+    """Pairwise intersection + Jaccard among the 7 base indicators (axis off).
+
+    With a year window, only dated memberships inside the window are included.
+    Undated case-only memberships cannot be assigned to a period, so they are
+    excluded from windowed overlap while remaining part of the full-window table.
+    """
+    if (year_min is None) != (year_max is None):
+        raise ValueError("year_min and year_max must be provided together")
+
+    sets = {}
+    for i in ind.all_indicators():
+        members = i.build().select("building_id", "year")
+        if year_min is not None and year_max is not None:
+            members = members.filter(pl.col("year").is_between(year_min, year_max))
+        sets[i.id] = set(members.select("building_id").unique().collect()["building_id"])
+
     rows = []
     ids = list(sets)
     for a in ids:
-        sa = set(sets[a])
+        sa = sets[a]
         for b in ids:
-            sb = set(sets[b])
+            sb = sets[b]
             inter = len(sa & sb)
             union = len(sa | sb)
             rows.append(
@@ -299,6 +312,10 @@ def main() -> None:
     print("Computing indicator overlap …")
     overlap_df = overlap()
     overlap_df.write_csv(RESULTS / "overlap.csv")
+    overlap_window_df = overlap(*OVERLAP_WINDOW)
+    overlap_window_df.write_csv(
+        RESULTS / f"overlap_{OVERLAP_WINDOW[0]}_{OVERLAP_WINDOW[1]}.csv"
+    )
 
     print("Rendering figures …")
     base = [i.id for i in ind.all_indicators()]  # base indicators only, for readability
@@ -318,6 +335,11 @@ def main() -> None:
     )
     plotting.overlap_heatmap(
         overlap_df, "Indicator overlap (Jaccard)", FIGURES / "overlap_heatmap",
+    )
+    plotting.overlap_heatmap(
+        overlap_window_df,
+        f"Indicator overlap (Jaccard), {OVERLAP_WINDOW[0]}-{OVERLAP_WINDOW[1]}",
+        FIGURES / f"overlap_heatmap_{OVERLAP_WINDOW[0]}_{OVERLAP_WINDOW[1]}",
     )
 
     print("\nSummary:")
