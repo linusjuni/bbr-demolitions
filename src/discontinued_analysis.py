@@ -12,12 +12,17 @@ Outputs:
         Same table filtered to discontinued last-known use codes.
     results/discontinued_axis_summary.csv
         One row per indicator × discontinued-axis definition.
+    results/latest_discontinued_sensitivity.csv
+        Full indicator estimates versus estimates after removing buildings whose
+        last-known use code is discontinued.
     results/figures/discontinued_vs_other_rates.{png,pdf}
         Apparent demolition share by discontinued-code status and indicator.
     results/figures/discontinued_code_rate_heatmap.{png,pdf}
         Discontinued use-code rates by indicator.
     results/figures/agriculture_210_replacement_rates.{png,pdf}
         Code 210 compared with agricultural replacement codes 211–219.
+    results/figures/latest_discontinued_sensitivity.{png,pdf}
+        Percent of each indicator removed by the last-known discontinued-code filter.
 
 Run:
     .venv/bin/python src/discontinued_analysis.py
@@ -178,6 +183,94 @@ def discontinued_axis_summary(
     )
 
 
+def latest_discontinued_sensitivity(axis_df: pl.DataFrame) -> pl.DataFrame:
+    """Full versus last-known-discontinued-excluded estimates by indicator."""
+    source = axis_df.filter(pl.col("axis") == "last_use_discontinued")
+    out = (
+        source.group_by("indicator", "indicator_name")
+        .agg(
+            pl.col("stock_buildings").sum().alias("full_stock_buildings"),
+            pl.col("stock_buildings")
+            .filter(~pl.col("axis_value"))
+            .sum()
+            .alias("kept_stock_buildings"),
+            pl.col("stock_buildings")
+            .filter(pl.col("axis_value"))
+            .sum()
+            .alias("removed_latest_discontinued_stock_buildings"),
+            pl.col("demolished_buildings").sum().alias("full_demolished_buildings"),
+            pl.col("demolished_buildings")
+            .filter(~pl.col("axis_value"))
+            .sum()
+            .alias("kept_demolished_buildings"),
+            pl.col("demolished_buildings")
+            .filter(pl.col("axis_value"))
+            .sum()
+            .alias("removed_latest_discontinued_demolished_buildings"),
+            pl.col("demolished_buildings_with_area")
+            .sum()
+            .alias("full_demolished_buildings_with_area"),
+            pl.col("demolished_buildings_with_area")
+            .filter(~pl.col("axis_value"))
+            .sum()
+            .alias("kept_demolished_buildings_with_area"),
+            pl.col("demolished_buildings_with_area")
+            .filter(pl.col("axis_value"))
+            .sum()
+            .alias("removed_latest_discontinued_buildings_with_area"),
+            pl.col("demolished_m2_total").sum().alias("full_m2_total"),
+            pl.col("demolished_m2_total")
+            .filter(~pl.col("axis_value"))
+            .sum()
+            .alias("kept_m2_total"),
+            pl.col("demolished_m2_total")
+            .filter(pl.col("axis_value"))
+            .sum()
+            .alias("removed_latest_discontinued_m2_total"),
+        )
+        .with_columns(
+            (
+                pl.col("removed_latest_discontinued_demolished_buildings")
+                / pl.col("full_demolished_buildings")
+                * 100
+            ).alias("removed_demolished_buildings_pct"),
+            (
+                pl.col("removed_latest_discontinued_m2_total")
+                / pl.col("full_m2_total")
+                * 100
+            ).alias("removed_m2_pct"),
+            (
+                pl.col("full_demolished_buildings_with_area")
+                / pl.col("full_demolished_buildings")
+                * 100
+            ).alias("full_area_coverage_pct"),
+            (
+                pl.col("kept_demolished_buildings_with_area")
+                / pl.col("kept_demolished_buildings")
+                * 100
+            ).alias("kept_area_coverage_pct"),
+        )
+        .sort("indicator")
+    )
+    return out.select(
+        "indicator",
+        "indicator_name",
+        "full_stock_buildings",
+        "kept_stock_buildings",
+        "removed_latest_discontinued_stock_buildings",
+        "full_demolished_buildings",
+        "kept_demolished_buildings",
+        "removed_latest_discontinued_demolished_buildings",
+        "removed_demolished_buildings_pct",
+        "full_m2_total",
+        "kept_m2_total",
+        "removed_latest_discontinued_m2_total",
+        "removed_m2_pct",
+        "full_area_coverage_pct",
+        "kept_area_coverage_pct",
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bygning", default=ind.BYGNING_PATH)
@@ -271,7 +364,9 @@ def plot_discontinued_heatmap(
 
 
 def plot_agriculture_replacements(
-    by_code_df: pl.DataFrame, output_dir: Path, indicators: tuple[str, ...] = ("D1", "D4", "D6", "D7")
+    by_code_df: pl.DataFrame,
+    output_dir: Path,
+    indicators: tuple[str, ...] = ("D1", "D4", "D6", "D7"),
 ) -> None:
     """Grouped bars for discontinued code 210 versus current agricultural codes."""
     codes = list(range(210, 220))
@@ -299,6 +394,45 @@ def plot_agriculture_replacements(
     sns.despine(ax=ax)
     fig.tight_layout()
     _save(fig, output_dir / "agriculture_210_replacement_rates")
+
+
+def plot_latest_discontinued_sensitivity(
+    sensitivity_df: pl.DataFrame, output_dir: Path
+) -> None:
+    """Bars showing how much the latest-discontinued filter removes."""
+    plot_df = (
+        sensitivity_df.select(
+            "indicator", "removed_demolished_buildings_pct", "removed_m2_pct"
+        )
+        .rename(
+            {
+                "removed_demolished_buildings_pct": "Demolished buildings",
+                "removed_m2_pct": "Demolished total area",
+            }
+        )
+        .to_pandas()
+        .melt(
+            id_vars="indicator",
+            var_name="Outcome",
+            value_name="Percent removed",
+        )
+    )
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    sns.barplot(
+        data=plot_df,
+        x="indicator",
+        y="Percent removed",
+        hue="Outcome",
+        palette="colorblind",
+        ax=ax,
+    )
+    ax.set_xlabel("Indicator")
+    ax.set_ylabel("Removed by latest-discontinued filter (%)")
+    ax.set_title("Sensitivity to excluding last-known discontinued codes")
+    ax.legend(title=None, frameon=False)
+    sns.despine(ax=ax)
+    fig.tight_layout()
+    _save(fig, output_dir / "latest_discontinued_sensitivity")
 
 
 def main() -> None:
@@ -330,13 +464,16 @@ def main() -> None:
     )
     discontinued_df = by_code_df.filter(pl.col("last_use_discontinued"))
     axis_df = pl.concat(axis_summaries).sort(["indicator", "axis", "axis_value"])
+    sensitivity_df = latest_discontinued_sensitivity(axis_df)
 
     by_code_path = args.output_dir / "demolition_rates_by_use_code.csv"
     discontinued_path = args.output_dir / "discontinued_rates_by_use_code.csv"
     axis_path = args.output_dir / "discontinued_axis_summary.csv"
+    sensitivity_path = args.output_dir / "latest_discontinued_sensitivity.csv"
     by_code_df.write_csv(by_code_path)
     discontinued_df.write_csv(discontinued_path)
     axis_df.write_csv(axis_path)
+    sensitivity_df.write_csv(sensitivity_path)
 
     if not args.no_plots:
         figures_dir = args.output_dir / "figures"
@@ -344,6 +481,7 @@ def main() -> None:
         plot_discontinued_vs_other(axis_df, figures_dir)
         plot_discontinued_heatmap(discontinued_df, figures_dir, args.min_stock)
         plot_agriculture_replacements(by_code_df, figures_dir)
+        plot_latest_discontinued_sensitivity(sensitivity_df, figures_dir)
 
     preview = discontinued_df.filter(pl.col("stock_buildings") >= args.min_stock).sort(
         ["indicator", "demolition_rate_pct"],
@@ -352,8 +490,22 @@ def main() -> None:
     print(f"\nWrote {by_code_path}")
     print(f"Wrote {discontinued_path}")
     print(f"Wrote {axis_path}")
+    print(f"Wrote {sensitivity_path}")
     if not args.no_plots:
         print(f"Wrote figures under {args.output_dir / 'figures'}")
+    print("\nLatest-discontinued sensitivity:")
+    with pl.Config(tbl_cols=-1, tbl_width_chars=180):
+        print(
+            sensitivity_df.select(
+                "indicator",
+                "full_demolished_buildings",
+                "kept_demolished_buildings",
+                pl.col("removed_demolished_buildings_pct").round(1),
+                pl.col("full_m2_total").round(0),
+                pl.col("kept_m2_total").round(0),
+                pl.col("removed_m2_pct").round(1),
+            )
+        )
     print(f"\nHighest discontinued-code rates with stock >= {args.min_stock}:")
     with pl.Config(tbl_cols=-1, tbl_width_chars=160, tbl_rows=30):
         print(
