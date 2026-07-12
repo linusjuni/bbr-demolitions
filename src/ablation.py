@@ -3,7 +3,7 @@
 Each indicator in ``indicators.py`` returns only ``building_id`` + ``year`` — the
 *membership* of the demolished set under that definition. This driver attaches the
 outcome measures the article reports (``docs/indicators.md`` "Ablation scope") and
-sweeps the full 14-cell variant grid (``all_variants``):
+sweeps the full 12-cell variant grid (``all_variants``):
 
     - counts        — one row per candidate building after the shared negative-area filter
     - demolished m² — primary area outcome = byg038SamletBygningsareal
@@ -26,7 +26,7 @@ Outputs (written under ``results/``):
     annual.csv             variant × year: count, m², and area coverage
     by_region.csv          variant × region: count, m², and area coverage
     cleaning_report.csv    total-area quality flags × (all stock, each indicator)
-    overlap.csv            pairwise intersection + Jaccard among the 7 base indicators
+    overlap.csv            pairwise intersection + Jaccard among the 6 base indicators
     overlap_2018_2025.csv  same, restricted to dated 2018-2025 memberships
     figures/*.png + *.pdf  annual_counts, annual_area_total, overlap_heatmap
                            (rendered by src/plotting.py — seaborn, English labels)
@@ -233,7 +233,7 @@ def by_region(label: str, demolished: pl.LazyFrame, attrs: pl.LazyFrame) -> pl.D
 
 
 def overlap(year_min: int | None = None, year_max: int | None = None) -> pl.DataFrame:
-    """Pairwise intersection + Jaccard among the 7 base indicators (axis off).
+    """Pairwise intersection + Jaccard among the 6 base indicators (axis off).
 
     With a year window, only dated memberships inside the window are included.
     Undated case-only memberships cannot be assigned to a period, so they are

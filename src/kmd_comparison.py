@@ -10,7 +10,7 @@ What this script establishes, empirically:
 
 1. **The extract's core signal is `Sagstype = 32`** (Nedrivning hel / total demolition) —
    *every* row carries it. So KMD is a total-demolition-case list, i.e. the same signal as
-   our D4/D6, NOT the register-exit `status = 10` (D1).
+   our D4/D5, NOT the register-exit `status = 10` (D1).
 2. **All 149,013 distinct KMD buildings are present in our 2017+ extract** (backdated
    `virkningFra` keeps the records), so the join is clean and total.
 3. **Window-matched, D4 reproduces KMD to ~99%** (recall 99.7%, precision 99.4%,
@@ -27,8 +27,8 @@ demolitions look like false positives, so **precision is meaningless without win
 To avoid dating the two sides on different clocks, both KMD and every proxy are dated by
 the SAME field — our extract's status-10 `virkningFra` year (`indicators._status10_year`).
 Consequence: buildings that never reached status-10 (case-only / process-only members)
-drop from *both* sides, so within the window D2≡D3 and D4≡D6. That is a fair common clock;
-it slightly understates D2's and D4/D5's native reach, but the D4≈KMD headline is robust.
+drop from *both* sides, so within the window D2≡D3 and D4≡D5. That is a fair common clock;
+it slightly understates D2's and D4's native reach, but the D4≈KMD headline is robust.
 
 Run:  ``.venv/bin/python src/kmd_comparison.py``            (both raw and windowed tables)
       ``.venv/bin/python src/kmd_comparison.py --window 2011 2019``   (custom window)

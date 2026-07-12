@@ -433,7 +433,7 @@ def plot_discontinued_heatmap(
 def plot_agriculture_replacements(
     by_code_df: pl.DataFrame,
     output_dir: Path,
-    indicators: tuple[str, ...] = ("D1", "D4", "D6", "D7"),
+    indicators: tuple[str, ...] = ("D1", "D4", "D5", "D6"),
 ) -> None:
     """Grouped bars for discontinued code 210 versus current agricultural codes."""
     codes = list(range(210, 220))

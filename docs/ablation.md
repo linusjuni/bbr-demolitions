@@ -4,8 +4,8 @@ This documents the runnable pipeline that turns the demolition indicators into t
 numbers and figures the article reports. It is the companion to `docs/indicators.md`
 (which defines *why* the indicators disagree) and to the code in `src/`.
 
-- **Definitions** — `src/indicators.py` (the D1–D7 set + the discontinued-code axis).
-- **Driver** — `src/ablation.py` (sweeps the 14-variant grid, writes tables).
+- **Definitions** — `src/indicators.py` (the D1–D6 set + the discontinued-code axis).
+- **Driver** — `src/ablation.py` (sweeps the 12-variant grid, writes tables).
 - **Figures** — `src/plotting.py` (seaborn, English labels, importable).
 
 Run the whole thing (~60 s on the full extract):
@@ -16,7 +16,7 @@ Run the whole thing (~60 s on the full extract):
 
 ## What the pipeline computes
 
-For every one of the **14 variants** (`D1`…`D7` and their `-exdisc` counterparts,
+For every one of the **12 variants** (`D1`…`D6` and their `-exdisc` counterparts,
 from `indicators.all_variants()`) the driver attaches outcome measures and writes:
 
 | File | Grain | Contents |
@@ -24,9 +24,9 @@ from `indicators.all_variants()`) the driver attaches outcome measures and write
 | `results/ablation_summary.csv` | one row / variant | count, plus total m² / median m² / coverage % under **each** of 3 area definitions |
 | `results/annual.csv` | variant × year | count + m² per area definition (dated buildings only) |
 | `results/by_region.csv` | variant × region | count + floor-area m² (uses the `region_name` column) |
-| `results/overlap.csv` | indicator × indicator | pairwise intersection + Jaccard, 7 base indicators, full 2000-2025 window |
+| `results/overlap.csv` | indicator × indicator | pairwise intersection + Jaccard, 6 base indicators, full 2000-2025 window |
 | `results/overlap_2018_2025.csv` | indicator × indicator | same overlap calculation, restricted to dated 2018-2025 memberships |
-| `results/figures/*.png` + `*.pdf` | — | `annual_counts`, `annual_area_etage`, `area_definition_sensitivity`, `overlap_heatmap`, `overlap_heatmap_2018_2025` |
+| `results/figures/*.png` + `*.pdf` | — | `annual_counts`, `annual_area_total`, `overlap_heatmap`, `overlap_heatmap_2018_2025` |
 
 The indicators themselves return only `building_id` + `year` (the *membership* of the
 demolished set). Everything else — area, use-code, region, construction year — is rolled
@@ -126,16 +126,15 @@ buildings** — so no indicator's count changes and `coverage_pct` stays honest.
 `cleaning_report()` writes `results/cleaning_report.csv` — values removed per rule, for the
 whole stock and **per demolition indicator** (year-1000 shown as a *kept* flag for context):
 
-| scope | n | ≤0 footprint | ≤0 total | ≤0 etage | year-1000 (kept) |
+| scope | n | negative total | zero total | missing total | year-1000 (kept) |
 |---|---:|---:|---:|---:|---:|
-| ALL buildings | 6,250,075 | 42,299 | 125,248 | 121,419 | 454,739 |
-| D1 status=10 | 436,194 | 0 | 8,427 | 8,369 | 38,923 |
-| D2 process=3 | 225,706 | **9,342** | 10,071 | 8,802 | 11,805 |
-| D3 | 99,664 | 0 | 3,552 | 3,497 | 11,633 |
-| D4 sagstype=32 | 237,012 | 0 | 6,184 | 6,089 | 16,077 |
-| D5 {31,32} | 249,152 | 0 | 6,965 | 6,869 | 16,532 |
-| D6 | 200,634 | 0 | 3,877 | 3,819 | 13,063 |
-| D7 | 243,691 | 0 | 6,724 | 6,616 | 16,102 |
+| ALL buildings | 6,250,075 | 17,844 | 107,404 | 3,123,967 | 454,739 |
+| D1 status=10 | 436,194 | 0 | 8,427 | 233,304 | 38,923 |
+| D2 process=3 | 225,706 | **6,197** | 3,874 | 152,939 | 11,805 |
+| D3 | 99,664 | 0 | 3,552 | 37,742 | 11,633 |
+| D4 sagstype=32 | 237,012 | 0 | 6,184 | 90,000 | 16,077 |
+| D5 status10 ∩ 32 | 200,634 | 0 | 3,877 | 77,498 | 13,063 |
+| D6 total case, dated | 231,962 | 0 | 5,960 | 87,410 | 15,658 |
 
 Findings:
 - **Non-positive footprints are exclusive to D2** (9,342; zero everywhere else) — another D2/
@@ -157,7 +156,7 @@ Per `docs/indicators.md`, everything except the indicator is frozen so it can't 
 the comparison:
 
 - **Window** — 2000–2025 inclusive, clamped in `indicators._in_window` (undated matches
-  kept, so `D4`/`D5` don't collapse into `D6`).
+  kept, so `D4` doesn't collapse into `D5`).
 - **Discontinued-code exclusion** — an orthogonal on/off axis (`-exdisc`), never baked into
   an indicator.
 - **Building attributes** — rolled up identically (same last-non-null rule) for every
@@ -170,7 +169,7 @@ the comparison:
   round-number codes are the big agricultural buildings — matching BUILD's "landbrug
   dominates the m²" finding.
 - **The two canonical proxies barely agree.** `D1` (status-10) vs `D2` (process-3) Jaccard
-  = **0.18**; the case-based indicators (`D4`/`D5`/`D7`) cluster tightly at 0.88–0.95.
+  = **0.18**; the case-based indicators (`D4`/`D5`/`D6`) cluster tightly at 0.85–0.92.
 - **Area coverage itself splits by indicator** — floor area is present for ~46% of `D1`
   buildings but ~62% of the case-based ones, and `D2`'s footprint coverage is an anomalous
   ~51% vs ~99.8% elsewhere.
@@ -187,20 +186,20 @@ Two axes must be kept separate here — conflating them is easy:
 1. **Which buildings (demolition membership).** We do **not** copy Andersen (their
    *filtering* recipe is unpublished). We build transparent proxies and then *measure*
    against KMD. Result, window-matched to 2011–2019: KMD is the **total-demolition-case**
-   signal — `D4`/`D5`/`D6`/`D7` all reproduce it at Jaccard 0.98–0.99, while `D1`
+   signal — `D4`/`D5`/`D6` all reproduce it at Jaccard 0.985–0.991, while `D1`
    (status-10) is a strict **superset** (100% recall, 47% precision) and `D2` (process-3) a
    severe **undercount** (24% recall). Membership can't single out *one* case variant
-   (D4≈D6≈D7≈D5), so the claim is "KMD = the total-demolition case family," D4/D6 tightest.
+   (D4≈D5≈D6), so the claim is "KMD = the total-demolition case family," D4/D5 tightest.
 2. **How much area (missing-data handling).** *This* is the axis where we follow the papers
    (complete-case, no imputation — see "The area decision" above) — it is a portable
    convention, independent of how the demolished set was chosen.
 
 ## Known caveats (open, not bugs)
 
-1. **`D4`/`D5` undated members are absent from the time series.** Their year comes from
+1. **`D4` undated members are absent from the time series.** Its year comes from
    status-10; a building with a demolition case but no status-10 exit has `year = null`, so
    it counts in the *totals* but not in `annual.csv` / the trend figures (`D4`'s dated
-   subset ≈ `D6`). Candidate fix: fall back to the `sag002` notification year.
+   subset ≈ `D5`). Candidate fix: fall back to the `sag002` notification year.
 2. **Year-2000 pile-up.** Backdated `virkningFra` below the 2000 clamp all lands on 2000
    (the `D1` spike in `annual_counts`). Candidate fix: a `≤2000` bucket.
 

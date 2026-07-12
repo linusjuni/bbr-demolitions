@@ -126,7 +126,7 @@ signal is noisy and biased:
 So the KMD extract's only real advantages over a fresh Datafordeler pull are
 **national coverage** and **pre-2017 reach** — *not* accuracy. Treat it as a large,
 opaquely-filtered proxy with error bars, not a gold label. A transparent
-`status=10 ∩ sagstype∈{31,32}` signal we build and document ourselves is arguably no
+`status=10 ∩ sagstype=32` signal we build and document ourselves is arguably no
 less trustworthy.
 
 ### The demolition case: sagstype 31/32 (the current handle) vs felt 294/295 (gone from the feed)
@@ -185,14 +185,23 @@ a demolition case alone overcounts intent (no completion visible without felt 29
 their intersection is the closest completion-proxy this dataset allows.
 
 **RESOLVED against the extract (see implementation section below):** neither case
-date is a usable completion date. `sag010FuldførelseAfByggeri` (the felt-295
-candidate) is 65–95% null on demolition cases *and* semantically contaminated — the
-case a 31/32 row links to is usually a co-filed `nybyggeri`/`til-ombygning`, so its
-`sag010` is that rebuild's completion, not the demolition's. `sag002Byggesagsdato`
-(≈ felt 294 notification) is the only well-populated date (~97% of linkable
-buildings) but dates *notification*, not completion. So **felt 295 is not
-reconstructable from this feed**; demolitions are dated either by `sag002`
-(notification, our D7) or by the `status→10` `virkningFra` (register-exit, D1/D4–D6).
+date is a usable completion date — but *not* for the reason first assumed.
+`sag010FuldførelseAfByggeri` is **not a felt-295 analog at all**: the grunddatamodel
+defines it as *"Dato for fuldførelse af byggeri"* = completion of **construction**
+(*byggeri*), a different field from felt 295 *"Gennemført nedrivning"*. Felt 295 lives
+on the **`Bygning`** object, not the byggesag, and is **not distributed** — verified
+against both the `Bygning` and `BBRSag` grunddatamodel objects (neither exposes felt
+294/295 or any demolition-completion date). So on a demolition case `sag010` is only
+populated when construction work is attached to the case, and its value is that
+construction's completion, not the demolition's — dating a demolition by `sag010`
+would date it by when a (re)build finished. (At the *building* grain `sag010` is ~85%
+populated, not "65–95% null" as first measured at the *case-row* grain — but that is
+moot: it is the wrong semantic field, not merely a sparse one.) `sag002Byggesagsdato`
+(≈ felt 294 notification — the grunddatamodel states its meaning is case-type-dependent
+and *is* the demolition date for a demolition case) is the only usable, well-populated
+date (~97% of linkable buildings) but dates *notification*, not completion. So **felt
+295 is not reconstructable from this feed**; demolitions are dated either by `sag002`
+(notification, our D6) or by the `status→10` `virkningFra` (register-exit, D1/D4–D5).
 
 **Sources:** BBR Teknik kodelister (Livscyklus; **Sagstype 31/32**; Byggesagskode);
 BBR Instruks §3.2.2 Bygningsniveau, felt 290/292/294/295, §7.6.10 Indberetning ved
@@ -235,10 +244,9 @@ itself; the propagated effect on our actual output is the payload.
 ### Indicators to ablate
 
 - **Single signals:** register-exit (`status = 10 Historisk`) alone · demolition
-  case (`sagstype = 32` hel) alone · demolition case incl. partial
-  (`sagstype ∈ {31, 32}`) · regulatory permit (`byggesagskode = 6`) alone.
+  case (`sagstype = 32` hel) alone · regulatory permit (`byggesagskode = 6`) alone.
 - **Combinations:** `status = 10 ∩ sagstype = 32` (the recommended completion-proxy)
-  · `status = 10 ∩ {31, 32}` · `status = 10 ∪ sagstype` (maximum recall).
+  · `status = 10 ∪ sagstype` (maximum recall).
 - **Change-detection:** riv-ned-byg-nyt via BBR flags (#5) · teardown-by-transaction
   via OIS sales (#9, only if OIS is in scope).
 
@@ -256,8 +264,11 @@ one an explicit, separate axis):
 
 - **Time window** — restrict to the shared 2017→now period (the Datafordeler
   registration-history floor); otherwise variants aren't comparable.
-- **Partial vs total demolition** — decide whether `sagstype 31` is in or out once,
-  or treat it as its own axis rather than letting it drift.
+- **Partial vs total demolition** — *decided (2026-07-12)*: partial demolitions
+  (`sagstype 31`) are **out** everywhere; a partial demolition usually leaves the
+  building standing, so it is not a demolition event for our purposes. A
+  partial-inclusive sensitivity variant survives only as unregistered code
+  (`indicators.d4_incl_partial`) — it appears in no output, figure, or the paper.
 - **Pending vs completed cases** — *confirmed present*: the extract holds 547,844
   `sagstype 32` and 51,587 `sagstype 31` rows, so completed demolition cases are not
   purged from the temporal view. (Completion *dates* are still missing — see felt-295
@@ -273,10 +284,15 @@ lifespan / survival estimates, and the breakdowns by typology and geography — 
 report how each of these shifts as the indicator changes. Validate against BOSSINF
 on its slice for at least one anchored accuracy read.
 
-## Implementation: the D1–D7 indicator set and what the data showed
+## Implementation: the D1–D6 indicator set and what the data showed
 
 This is what we actually built (`src/indicators.py`) once the real Datafordeler
-extract arrived, and the empirical findings that shaped it.
+extract arrived, and the empirical findings that shaped it. *(Renumbering note,
+2026-07-12: the set was consolidated from seven to six — the partial-inclusive
+case indicator was demoted to the unregistered code-only function
+`d4_incl_partial`, the notification-dated case indicator was redefined as
+total-only, and the survivors renumbered contiguously D1–D6. The old numbering
+must not resurface; the manuscript presents D1–D6 as canonical.)*
 
 ### The data
 
@@ -300,9 +316,12 @@ backdated, so demolition years legitimately reach back to ~2000.
 - **Held-fixed window.** All indicators are clipped to **2000–2025 inclusive**, a
   confound frozen in one place. Undated matches are *kept* (a building with a
   demolition case but no status-10 year still counts) — dropping them would collapse
-  D4 into D6.
-- **Contiguous numbering.** D1–D3 are register-exit signals; D4–D7 are
+  D4 into D5.
+- **Contiguous numbering.** D1–D3 are register-exit signals; D4–D6 are
   demolition-case signals.
+- **Total demolitions only.** Partial-demolition cases (`sagstype 31`) qualify no
+  indicator — a partial demolition usually leaves the building standing. The
+  partial-inclusive variant exists only as the unregistered `d4_incl_partial()`.
 
 ### The indicators (counts windowed to 2000–2025)
 
@@ -312,13 +331,12 @@ backdated, so demolition years legitimately reach back to ~2000.
 | **D2** | forretningsproces = 3 | ever "Opdateret grundet nedrivning" | 225,706 |
 | **D3** | D1 ∩ D2 | status-10 **and** process-3 | 99,664 |
 | **D4** | sagstype = 32 | linked total-demolition case (hel) | 237,012 |
-| **D5** | sagstype ∈ {31, 32} | linked demolition case incl. partial | 249,152 |
-| **D6** | D1 ∩ D4 | status-10 **and** total case — recommended completion-proxy | 200,634 |
-| **D7** | case date present | dated by `sag002` notification ≈ felt 294 (felt-295 stand-in) | 243,691 |
+| **D5** | D1 ∩ D4 | status-10 **and** total case — recommended completion-proxy | 200,634 |
+| **D6** | total case, date present | `sagstype = 32` dated by `sag002` notification ≈ felt 294 (felt-295 stand-in) | 231,962 |
 
-Year source: D1/D3 status-10 `virkningFra`; D2 process-3 `virkningFra`; D4/D5/D6
-status-10 year (null for case-buildings that never went Historisk); D7 the `sag002`
-notification year.
+Year source: D1/D3 status-10 `virkningFra`; D2 process-3 `virkningFra`; D4
+status-10 year (null for case-buildings that never went Historisk); D5 the D1
+register-exit year; D6 the `sag002` notification year.
 
 ### The discontinued-code exclusion — a contested on/off axis, not an indicator
 
@@ -336,19 +354,21 @@ this extract its premise fails:
   (vs a 44.2% case-rate among the buildings it keeps) — so it removes *genuine*
   demolitions, over-correcting.
 
-`all_variants()` enumerates the full **7 × 2 = 14-cell grid** (`D1` … `D7` and
-`D1-exdisc` … `D7-exdisc`). `exclude_discontinued(D1)` reproduces the thesis's old
+`all_variants()` enumerates the full **6 × 2 = 12-cell grid** (`D1` … `D6` and
+`D1-exdisc` … `D6-exdisc`). `exclude_discontinued(D1)` reproduces the thesis's old
 "corrected historical" exactly (302,261). Whether the exclusion helps is an empirical
 question to settle against BOSSINF, not an assumption.
 
 ### Other empirical findings baked into the code
 
 - **felt 295 is not reconstructable** (see the resolved TODO above): no usable
-  completion date, so D7 is explicitly a *notification-dated activity* proxy, not a
-  completed-demolition flag. `case_date_complete` (sag010) is carried but not used by
-  default — it is the one-line swap for a strict, undercounting completion variant.
+  completion date, so D6 is explicitly a *notification-dated* proxy, not a
+  completed-demolition flag. `case_date_complete` (sag010) is carried for reference but
+  **must not** be used as a completion date: it is *fuldførelse af byggeri* (construction
+  completion), a distinct field from felt 295, so on a demolition case it carries the
+  attached (re)build's completion, not the demolition's.
 - **~82k demolition-case rows have a null `stamdataBygning`** and cannot be linked to
-  a building — a documented undercount for the case indicators D4/D5/D7.
+  a building — a documented undercount for the case indicators D4/D6.
 - **D2 is not a subset of D1** — 126,362 buildings are process-3 but never status-10,
   so D3 (their intersection) is far smaller than either. The proxies genuinely
   disagree; that disagreement is the result.
@@ -371,7 +391,7 @@ column lets us stop guessing and *measure* what KMD is.
 2. **Join to our extract by `id_lokalId`** (lower-cased — KMD uses upper-case UUIDs, our
    parquet lower-case). **All 149,013 distinct KMD buildings are present** in our 2017+
    extract (backdated `virkningFra` keeps the records), so the comparison is complete.
-3. **Score each proxy D1–D7 against the KMD set** — recall (share of KMD caught),
+3. **Score each proxy D1–D6 against the KMD set** — recall (share of KMD caught),
    precision (share of the proxy that is KMD), Jaccard.
 4. **Window-match on one clock.** KMD spans 2000–2020 and the paper drops pre-2011; our
    proxies run 2000–2025 unfiltered — so raw precision is unfair (a proxy's legitimate
@@ -387,9 +407,8 @@ Window-matched to 2011–2019 (full table in `results/kmd_comparison.csv`):
 | D1 | status = 10 | **100.0%** | 47.2% | 0.47 |
 | D2 / D3 | process = 3 | 24.2% | 99.7% | 0.24 |
 | **D4** | **sagstype = 32** | **99.7%** | **99.4%** | **0.99** |
-| D5 | sagstype {31,32} | 99.7% | 99.0% | 0.99 |
-| D6 | status10 ∩ 32 | 99.7% | 99.4% | 0.99 |
-| D7 | case date present | 99.0% | 99.1% | 0.98 |
+| D5 | status10 ∩ 32 | 99.7% | 99.4% | 0.99 |
+| D6 | total case, `sag002` dated | 99.0% | 99.5% | 0.99 |
 
 Three tiers of conclusion, kept distinct so we don't overclaim:
 
@@ -397,13 +416,13 @@ Three tiers of conclusion, kept distinct so we don't overclaim:
   it is *not* `status=10`.** D1 has 100% recall but only 47% precision — it *contains* KMD
   but flags ~2× as many buildings, so it is a strict **superset**, not KMD. Process-3
   (D2/D3) is ruled out the other way: 24% recall, a severe undercount.
-- **Underdetermined (which exact variant): D4 ≈ D5 ≈ D6 ≈ D7.** All four case-based
-  indicators reproduce KMD to 0.98–0.99; membership **cannot** single one out. D4 and D6
-  are literally identical in-window (the status-10 clock forces it). The one weak
-  discriminator is that KMD is **32-only** (no partials), so the total-only indicators
-  (D4/D6) edge out D5 (which adds `sagstype 31`) by ~0.4 pp precision. So the honest
-  statement is "**KMD = the total-demolition case family**," with D4/D6 the tightest
-  literal match — not "KMD = D4" specifically.
+- **Underdetermined (which exact variant): D4 ≈ D5 ≈ D6.** All three case-based
+  indicators reproduce KMD to 0.985–0.991; membership **cannot** single one out. D4 and
+  D5 are literally identical in-window (the status-10 clock forces it). One weak
+  corroboration that KMD is **32-only** (no partials): a partial-inclusive sensitivity
+  run (the unregistered `d4_incl_partial`) scores ~0.4 pp lower precision than the
+  total-only indicators. So the honest statement is "**KMD = the total-demolition case
+  family**," with D4/D5 the tightest literal match — not "KMD = D4" specifically.
 - **Still unknown: KMD's *filtering*.** We reproduce its *membership*, not the exact rows
   it dropped pre-2011 or how it de-duplicated. That recipe stays unpublished — but it now
   sits inside a ±1% band of a signal we can build and document ourselves.
@@ -459,7 +478,7 @@ it. (Reproduce via `src/kmd_comparison.py`; the profiling query is recorded ther
 
 ### Next step
 
-Score the 14 variants against **BOSSINF** on its grant-funded-demolition slice — the
+Score the 12 variants against **BOSSINF** on its grant-funded-demolition slice — the
 one place a real precision/recall can be read against something *authoritative* (KMD is a
 reference, not truth) — then propagate each through to the downstream outputs (counts,
 demolished area, rate-vs-stock, lifespans, typology/geo breakdowns) per the ablation scope

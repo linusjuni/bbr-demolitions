@@ -21,10 +21,10 @@ demolished buildings** under that definition, one row per building:
 Two families, contiguously numbered:
 
     D1-D3  register-exit signals   (from Bygning: status, forretningsproces)
-    D4-D7  demolition-case signals (from Sagsniveau + BBRSag: sagstype, dates)
+    D4-D6  demolition-case signals (from Sagsniveau + BBRSag: sagstype, dates)
 
 Membership is row presence; combinations are join algebra
-(``D3 = D1 ∩ D2``, ``D6 = D1 ∩ D4``). The discontinued-use-code exclusion is *not*
+(``D3 = D1 ∩ D2``, ``D5 = D1 ∩ D4``). The discontinued-use-code exclusion is *not*
 an indicator but an orthogonal on/off axis (``exclude_discontinued``) composable
 with any of them; ``all_variants`` enumerates the full indicator × axis grid. The
 only shared code is three *mechanical* grain-reduction helpers (``_status10_year``,
@@ -32,8 +32,8 @@ only shared code is three *mechanical* grain-reduction helpers (``_status10_year
 the many-rows-per-building → one-row reduction.
 
 Counts verified against the real data (denominator 6,250,075 buildings, windowed to
-2000–2025): D1 436,194 · D2 225,706 · D3 99,664 · D4 237,012 · D5 249,152 ·
-D6 200,634 · D7 243,691. The exclusion axis strips ~34% from every indicator; on
+2000–2025): D1 436,194 · D2 225,706 · D3 99,664 · D4 237,012 · D5 200,634 ·
+D6 231,962. The exclusion axis strips ~34% from every indicator; on
 this extract 50.7% of the status-10 buildings it strips *also* have a formal
 demolition case, so it is a contested variant, not a correction.
 """
@@ -105,7 +105,7 @@ def _in_window(lf: pl.LazyFrame) -> pl.LazyFrame:
 
     Null years are retained on purpose: a building can match an indicator (e.g.
     has a demolition case) yet have no year because it never reached status 10.
-    Dropping those would silently collapse D4 into D6 (D1 ∩ D4) and erase it as a
+    Dropping those would silently collapse D4 into D5 (D1 ∩ D4) and erase it as a
     distinct signal — so undated membership survives; only out-of-window *dated*
     rows are removed.
     """
@@ -151,17 +151,21 @@ def _demolition_cases() -> pl.LazyFrame:
     Join chain: ``Bygning.id_lokalId ◄─stamdataBygning─ Sagsniveau ─byggesag─►
     BBRSag.id_lokalId``. The demolished building is ``stamdataBygning`` (the
     stamobjekt of the case). Rows with a null ``stamdataBygning`` (~82k) cannot
-    be tied to a building and are dropped — a documented undercount for D4/D5/D7.
+    be tied to a building and are dropped — a documented undercount for D4/D6.
 
     Columns:
         building_id        str
         sagstypes_seen     list[int]  distinct {31, 32} seen — NOT collapsed
         case_date_notify   date?      min sag002 Byggesagsdato (case/notification,
                                        ≈ old felt 294) — well populated (~97%)
-        case_date_complete date?      min sag010 FuldførelseAfByggeri (completion,
-                                       felt-295 analog) — sparse AND contaminated
-                                       (linked case is usually a co-filed
-                                       nybyggeri/til-ombygning, not the demolition)
+        case_date_complete date?      min sag010 FuldførelseAfByggeri — completion of
+                                       CONSTRUCTION (byggeri), NOT a felt-295 analog.
+                                       Felt 295 (Gennemført nedrivning) is a Bygning
+                                       field and is not distributed; sag010 is a
+                                       distinct field. On a demolition case it is only
+                                       set when (re)build work is attached, and then
+                                       holds that build's completion, not the
+                                       demolition's — do NOT use it as a completion date
     """
     cases = (
         pl.scan_parquet(SAGSNIVEAU_PATH)
@@ -256,7 +260,7 @@ def d3() -> pl.LazyFrame:
     return d1().join(d2().select("building_id"), on="building_id", how="inner")
 
 
-# --- D4-D7: demolition-case indicators (from Sagsniveau + BBRSag) ------------
+# --- D4-D6: demolition-case indicators (from Sagsniveau + BBRSag) ------------
 
 
 @indicator(4, "Demolition case (total)", "demolition case sagstype == 32 (hel)")
@@ -273,14 +277,17 @@ def d4() -> pl.LazyFrame:
     )
 
 
-@indicator(
-    5,
-    "Demolition case (incl. partial)",
-    "demolition case sagstype in {31, 32}",
-)
-def d5() -> pl.LazyFrame:
-    # Collapse-free: only ~2.7% of buildings carry both 31 and 32, and the raw
-    # `sagstypes_seen` list handles them with zero judgment — no "prefer 32" rule.
+def d4_incl_partial() -> pl.LazyFrame:
+    """Sensitivity variant of D4 that also admits partial-demolition cases.
+
+    NOT an indicator: deliberately unregistered, so ``all_indicators()`` /
+    ``all_variants()`` and every downstream driver never see it. Kept only as a
+    code-level sensitivity check on the sagstype-31 axis (admitting partials
+    changes D4 by ~5% of buildings, Jaccard 0.95, and the 2018–2025 annual rate
+    by <0.5%). Collapse-free: only ~2.7% of case-linked buildings carry both 31
+    and 32, and the raw `sagstypes_seen` list handles them with zero judgment —
+    no "prefer 32" rule.
+    """
     cases = _demolition_cases().filter(
         # 31 = Nedrivning delvis (partial), 32 = Nedrivning hel (total).
         pl.col("sagstypes_seen").list.contains(31)
@@ -294,37 +301,45 @@ def d5() -> pl.LazyFrame:
 
 
 @indicator(
-    6,
+    5,
     "Completion proxy",
     "status == 10 and demolition case sagstype == 32 — recommended completion-proxy",
 )
-def d6() -> pl.LazyFrame:
+def d5() -> pl.LazyFrame:
     # Year from D1 (register-exit = the closest completion timestamp we have).
     # Window inherited from d1().
     return d1().join(d4().select("building_id"), on="building_id", how="inner")
 
 
 @indicator(
-    7,
+    6,
     "Case-date proxy for felt 295",
-    "demolition case with a case date present (approximation of felt 295, NOT the real flag)",
+    "total-demolition case with a case date present (approximation of felt 295, NOT the real flag)",
 )
-def d7() -> pl.LazyFrame:
+def d6() -> pl.LazyFrame:
     """A case *date* stands in for felt 295 "Gennemført nedrivning".
 
-    Felt 295 is not distributed on Datafordeler, so this dates demolitions by the
-    case date. We use ``case_date_notify`` (sag002 Byggesagsdato ≈ old felt 294
-    notification): it is well populated (~97%) and semantically clean. The
-    completion field ``case_date_complete`` (sag010) is both sparse and
-    contaminated by co-filed construction cases, so it is NOT the default — swap
-    it in for a strict (undercounting) completion variant in the ablation.
+    Felt 295 (the real completion flag) is a ``Bygning`` attribute and is NOT
+    distributed on Datafordeler, so it cannot be reconstructed from this feed. We
+    date demolitions by ``case_date_notify`` (sag002 Byggesagsdato ≈ old felt 294
+    notification): the grunddatamodel defines sag002 as case-type-dependent (the
+    demolition date for a demolition case), it is well populated (~97%) and
+    semantically clean. ``case_date_complete`` (sag010) is NOT a usable fallback —
+    it is *fuldførelse af byggeri* (construction completion), a distinct field from
+    felt 295, so on a demolition case it carries the attached (re)build's completion
+    date, not the demolition's; using it would date demolitions by when construction
+    finished.
 
-    This counts demolition *activity*, full or partial, dated by notification —
-    it must not be read as a confirmed completed full demolition.
+    This counts total-demolition cases (sagstype 32, like D4) dated by
+    notification — it must not be read as a confirmed completed demolition.
     """
     return _in_window(
         _demolition_cases()
-        .filter(pl.col("case_date_notify").is_not_null())
+        .filter(
+            # 32 = Nedrivning hel (total); same membership rule as D4.
+            pl.col("sagstypes_seen").list.contains(32)
+            & pl.col("case_date_notify").is_not_null()
+        )
         .select(
             "building_id",
             pl.col("case_date_notify").dt.year().alias("year"),

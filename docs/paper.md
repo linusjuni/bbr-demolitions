@@ -4,7 +4,7 @@ Target journal: **Journal of Building Engineering (JOBE)**, Elsevier. This file 
 build-list for the manuscript: the framing, the claims, the sections, and what still has
 to be computed before each can be written. It is guidance, not prose.
 
-Companion docs: `docs/indicators.md` (the D1–D7 definitions + KMD reproduction),
+Companion docs: `docs/indicators.md` (the D1–D6 definitions + KMD reproduction),
 `docs/ablation.md` (the pipeline), `docs/plan.md` (the original research plan).
 
 ## Scope & positioning (settle first, it drives everything)
@@ -72,9 +72,9 @@ consequence + decision rule, not "we did an analysis."
 1. **Quantified sensitivity (headline / novelty).** First systematic quantification of how
    the choice of BBR demolition indicator changes national demolition estimates — an
    **[X]-fold** range in annual demolished area (and demolition rate) over the shared
-   window from seven defensible, transparent definitions. *The number is the novelty; the
+   window from six defensible, transparent definitions. *The number is the novelty; the
    contribution paragraph cannot be written until it exists (see "Blocking analysis").*
-2. **A transparent, reproducible indicator set** (D1–D7 + the discontinued-code axis) that
+2. **A transparent, reproducible indicator set** (D1–D6 + the discontinued-code axis) that
    replaces the opaque KMD extract the field currently reuses — including the demonstration
    that KMD is itself reproducible (`sagstype = 32`) and marginally noisier than a
    documented case-based alternative. Supporting result, not the thesis.
@@ -117,7 +117,7 @@ Standard JOBE research-article shape; map our assets onto it.
    proxy zoo exists — it motivates the whole study).
 3. **Data** — the Datafordeler extract (6.25M buildings, temporal history, 2017 floor,
    backdated virkningFra), plus the KMD extract and BOSSINF as external anchors.
-4. **Methods — the indicator set** — D1–D7 + discontinued-code axis; the held-fixed
+4. **Methods — the indicator set** — D1–D6 + discontinued-code axis; the held-fixed
    confounds (window, partial-vs-total, building filters); the area definitions + coverage
    reporting; complete-case handling matched to the papers.
 5. **Results**
