@@ -15,6 +15,10 @@ Outputs:
     results/latest_discontinued_sensitivity.csv
         Full indicator estimates versus estimates after removing buildings whose
         last-known use code is discontinued.
+    results/discontinued_code_transition_pairs.csv
+        Top same-building transitions from discontinued to current use codes.
+    results/discontinued_code_transition_years.csv
+        Annual counts of same-building discontinued-to-current recodings.
     results/figures/discontinued_vs_other_rates.{png,pdf}
         Apparent demolition share by discontinued-code status and indicator.
     results/figures/discontinued_code_rate_heatmap.{png,pdf}
@@ -23,6 +27,8 @@ Outputs:
         Code 210 compared with agricultural replacement codes 211–219.
     results/figures/latest_discontinued_sensitivity.{png,pdf}
         Percent of each indicator removed by the last-known discontinued-code filter.
+    results/figures/discontinued_code_migration.{png,pdf}
+        Top old-to-current code transitions and their timing.
 
 Run:
     .venv/bin/python src/discontinued_analysis.py
@@ -40,6 +46,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.ticker import StrMethodFormatter
 import polars as pl
 import seaborn as sns
 
@@ -50,6 +57,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 RESULTS = _ROOT / "results"
 FIGURES = RESULTS / "figures"
 AREA_COL = "area_total"
+USE_COL = "byg021BygningensAnvendelse"
 
 
 def _last_nonnull(column: str) -> pl.Expr:
@@ -106,6 +114,65 @@ def _with_rates(df: pl.DataFrame) -> pl.DataFrame:
         .otherwise(None)
         .alias("demolished_area_coverage_pct"),
     )
+
+
+def discontinued_code_transitions() -> pl.DataFrame:
+    """First same-building transition from a discontinued to a current use code."""
+    return (
+        pl.scan_parquet(ind.BYGNING_PATH)
+        .select("id_lokalId", "virkningFra", "registreringFra", USE_COL)
+        .filter(pl.col(USE_COL).is_not_null())
+        .sort(["id_lokalId", "virkningFra", "registreringFra"])
+        .with_columns(pl.col(USE_COL).shift(1).over("id_lokalId").alias("old_code"))
+        .filter(
+            pl.col("old_code").is_in(list(ind.DISCONTINUED_CODES))
+            & ~pl.col(USE_COL).is_in(list(ind.DISCONTINUED_CODES))
+        )
+        .group_by("id_lokalId")
+        .agg(
+            pl.col("old_code").first().alias("old_code"),
+            pl.col(USE_COL).first().alias("new_code"),
+            pl.col("virkningFra").first().alias("switch_effect_from"),
+            pl.col("registreringFra").first().alias("switch_registration_from"),
+        )
+        .rename({"id_lokalId": "building_id"})
+        .with_columns(
+            pl.col("switch_effect_from").dt.year().alias("effect_year"),
+            pl.col("switch_registration_from").dt.year().alias("registration_year"),
+        )
+        .collect()
+    )
+
+
+def transition_pair_summary(transitions: pl.DataFrame) -> pl.DataFrame:
+    """Counts by old-code/new-code pair."""
+    return (
+        transitions.group_by("old_code", "new_code")
+        .agg(pl.len().alias("n_buildings"))
+        .with_columns(
+            (pl.col("n_buildings") / pl.col("n_buildings").sum() * 100).alias(
+                "share_pct"
+            )
+        )
+        .sort("n_buildings", descending=True)
+    )
+
+
+def transition_year_summary(transitions: pl.DataFrame) -> pl.DataFrame:
+    """Annual counts of discontinued-to-current recodings."""
+    summaries = []
+    for year_col, year_type in [
+        ("effect_year", "effect"),
+        ("registration_year", "registration"),
+    ]:
+        summaries.append(
+            transitions.group_by(year_col)
+            .agg(pl.len().alias("n_buildings"))
+            .rename({year_col: "year"})
+            .with_columns(pl.lit(year_type).alias("year_type"))
+            .select("year_type", "year", "n_buildings")
+        )
+    return pl.concat(summaries).sort("year_type", "year")
 
 
 def rates_by_use_code(indicator: ind.Indicator, attrs: pl.LazyFrame) -> pl.DataFrame:
@@ -435,6 +502,72 @@ def plot_latest_discontinued_sensitivity(
     _save(fig, output_dir / "latest_discontinued_sensitivity")
 
 
+def plot_discontinued_code_migration(
+    pair_df: pl.DataFrame,
+    year_df: pl.DataFrame,
+    output_dir: Path,
+    top_n: int = 12,
+) -> None:
+    """Two-panel diagnostic of same-building old-to-current recodings."""
+    pairs = (
+        pair_df.head(top_n)
+        .with_columns(
+            (
+                pl.col("old_code").cast(pl.Utf8)
+                + " -> "
+                + pl.col("new_code").cast(pl.Utf8)
+            ).alias("Transition")
+        )
+        .sort("n_buildings")
+        .to_pandas()
+    )
+    years = (
+        year_df.filter(
+            (pl.col("year_type") == "registration")
+            & pl.col("year").is_not_null()
+            & (pl.col("year") <= ind.YEAR_MAX)
+        )
+        .sort("year")
+        .to_pandas()
+    )
+
+    fig, axes = plt.subplots(
+        1,
+        2,
+        figsize=(11, 4.8),
+        gridspec_kw={"width_ratios": [1.35, 1]},
+    )
+    palette = sns.color_palette("colorblind")
+    sns.barplot(
+        data=pairs,
+        y="Transition",
+        x="n_buildings",
+        color=palette[0],
+        ax=axes[0],
+    )
+    axes[0].set_xlabel("Buildings")
+    axes[0].set_ylabel("Use-code transition")
+    axes[0].set_title("Largest discontinued-to-current recodings")
+    axes[0].xaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+
+    sns.barplot(
+        data=years,
+        x="year",
+        y="n_buildings",
+        color=palette[1],
+        ax=axes[1],
+    )
+    axes[1].set_xlabel("Registration year")
+    axes[1].set_ylabel("Buildings")
+    axes[1].set_title("Timing of observed recodings")
+    axes[1].yaxis.set_major_formatter(StrMethodFormatter("{x:,.0f}"))
+    axes[1].tick_params(axis="x", rotation=45)
+
+    sns.despine(fig=fig)
+    fig.tight_layout()
+    _save(fig, output_dir / "discontinued_code_migration")
+
+
 def main() -> None:
     args = parse_args()
     ind.BYGNING_PATH = args.bygning
@@ -465,15 +598,23 @@ def main() -> None:
     discontinued_df = by_code_df.filter(pl.col("last_use_discontinued"))
     axis_df = pl.concat(axis_summaries).sort(["indicator", "axis", "axis_value"])
     sensitivity_df = latest_discontinued_sensitivity(axis_df)
+    print("Summarizing discontinued-to-current recodings ...")
+    transition_df = discontinued_code_transitions()
+    transition_pairs_df = transition_pair_summary(transition_df)
+    transition_years_df = transition_year_summary(transition_df)
 
     by_code_path = args.output_dir / "demolition_rates_by_use_code.csv"
     discontinued_path = args.output_dir / "discontinued_rates_by_use_code.csv"
     axis_path = args.output_dir / "discontinued_axis_summary.csv"
     sensitivity_path = args.output_dir / "latest_discontinued_sensitivity.csv"
+    transition_pairs_path = args.output_dir / "discontinued_code_transition_pairs.csv"
+    transition_years_path = args.output_dir / "discontinued_code_transition_years.csv"
     by_code_df.write_csv(by_code_path)
     discontinued_df.write_csv(discontinued_path)
     axis_df.write_csv(axis_path)
     sensitivity_df.write_csv(sensitivity_path)
+    transition_pairs_df.write_csv(transition_pairs_path)
+    transition_years_df.write_csv(transition_years_path)
 
     if not args.no_plots:
         figures_dir = args.output_dir / "figures"
@@ -482,6 +623,9 @@ def main() -> None:
         plot_discontinued_heatmap(discontinued_df, figures_dir, args.min_stock)
         plot_agriculture_replacements(by_code_df, figures_dir)
         plot_latest_discontinued_sensitivity(sensitivity_df, figures_dir)
+        plot_discontinued_code_migration(
+            transition_pairs_df, transition_years_df, figures_dir
+        )
 
     preview = discontinued_df.filter(pl.col("stock_buildings") >= args.min_stock).sort(
         ["indicator", "demolition_rate_pct"],
@@ -491,8 +635,24 @@ def main() -> None:
     print(f"Wrote {discontinued_path}")
     print(f"Wrote {axis_path}")
     print(f"Wrote {sensitivity_path}")
+    print(f"Wrote {transition_pairs_path}")
+    print(f"Wrote {transition_years_path}")
     if not args.no_plots:
         print(f"Wrote figures under {args.output_dir / 'figures'}")
+    print(
+        f"\nFound {transition_df.height:,} same-building transitions from "
+        "discontinued to current use codes."
+    )
+    print("Largest discontinued-to-current code transitions:")
+    with pl.Config(tbl_cols=-1, tbl_width_chars=120):
+        print(
+            transition_pairs_df.select(
+                "old_code",
+                "new_code",
+                "n_buildings",
+                pl.col("share_pct").round(1),
+            ).head(12)
+        )
     print("\nLatest-discontinued sensitivity:")
     with pl.Config(tbl_cols=-1, tbl_width_chars=180):
         print(
