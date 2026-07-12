@@ -6,12 +6,15 @@ numbers and figures the article reports. It is the companion to `docs/indicators
 
 - **Definitions** — `src/indicators.py` (the D1–D6 set + the discontinued-code axis).
 - **Driver** — `src/ablation.py` (sweeps the 12-variant grid, writes tables).
+- **Rates** — `src/rates.py` (BYGB34 denominator → demolition rate vs stock).
 - **Figures** — `src/plotting.py` (seaborn, English labels, importable).
 
-Run the whole thing (~60 s on the full extract):
+Run the whole thing (~60 s on the full extract; the rate step reads `annual.csv`, so it
+runs second):
 
 ```bash
 .venv/bin/python src/ablation.py
+.venv/bin/python src/rates.py
 ```
 
 ## What the pipeline computes
@@ -174,6 +177,54 @@ the comparison:
   buildings but ~62% of the case-based ones, and `D2`'s footprint coverage is an anomalous
   ~51% vs ~99.8% elsewhere.
 
+## The rate vs stock step (`src/rates.py`)
+
+Turns the annual demolished m² into **demolition rates** — % of national stock floor
+area per year — against the Statistics Denmark **BYGB34** stock denominator (the same
+denominator as the Rune PhD and Andersen 2023; provenance in `dataset/SOURCES.md`).
+BYGB34 exists only from 2011, so rates exist for **2011–2025** and the PhD's 2010–2019
+window can only be matched as 2011–2019.
+
+Decisions (Theodor, 2026-07-12):
+
+- **Field-matched pairings, never crossed.** Primary rate = `m2_etage` (byg039+byg040)
+  ÷ BYGB34 *Boligareal + Erhvervsareal* — exact BBR-field match on both sides and
+  BUILD's own area basis. Secondary = `m2_total` (byg038) ÷ *Samlet etageareal* (which
+  per DST = byg038 + utilised attic, so slightly wide). Footprint gets **no rate**
+  (BYGB34 has no footprint stock).
+- **Year convention:** demolitions of year *t* ÷ stock at 1 January of year *t*
+  (BYGB34's reference date).
+- **Complete-case, coverage reported** — same convention as the m² tables above; the
+  anchors were computed the same way, which is what makes the rates comparable. All
+  rates are therefore **lower bounds**; `coverage_pct` sits beside every rate in
+  `rates_summary.csv`.
+- **BUILD's pre-1999 numerator cut is NOT applied** (decided 2026-07-12 — it would have
+  been the pipeline's first use of the raw construction year as a filter). Over BUILD's
+  2012–2023 window our numerator is accordingly wider than theirs.
+- **The headline window is 2018–2025** (decided 2026-07-12) — the article's clean-years
+  window: `D3` 0.250% → `D1` 0.441%, a 1.8-fold spread. The other windows stay in
+  `rates_summary.csv` for the anchor comparisons only.
+
+| File | Grain | Contents |
+|---|---|---|
+| `results/stock_national.csv` | year | parsed BYGB34 national stock (m²) per arealtype |
+| `results/rates_annual.csv` | variant × year | m², stock and rate under both pairings |
+| `results/rates_summary.csv` | variant × window | mean annual rate + m²/yr + coverage, for 2011–2019 (PhD), 2012–2023 (BUILD), 2018–2025 (clean years), 2011–2025 |
+| `results/rates_spread.csv` | window × pairing | min/max variant + **fold spread** (the headline) |
+| `results/figures/rate_vs_stock.*` | — | annual rate lines vs the published 0.26%/0.3% anchor levels |
+
+Headline numbers now on file (primary pairing, base indicators):
+
+- **The PhD anchor reproduces:** `D4` (KMD/`sagstype=32`) 2011–2019 = **0.254 %/yr**
+  vs the PhD's ~0.26% (`D5` 0.256%, `D6` 0.254%). Window-matched one year short, stated
+  above.
+- **Indicator spread:** 2011–2019 runs `D3` 0.064% → `D1` 0.444% (**6.9-fold**);
+  the clean-years window 2018–2025 runs `D3` 0.250% → `D1` 0.441% (**1.8-fold**).
+  Adding the `-exdisc` axis widens 2011–2019 to 30-fold (`D3-exdisc` 0.015% → `D1`).
+- In the figure `D4` is invisible under `D6` — their dated annual series are identical
+  (caveat 1 below), a built-in consistency check. `D2`/`D3` sit near zero before
+  2016/2017 (the register-history floor), which drags their early-window means down.
+
 ## The KMD/Andersen extract is reproducible — and it's `sagstype 32`
 
 We hold the raw KMD extract (`dataset/andersen_raw.csv`, 152,300 rows) with building UUIDs,
@@ -199,20 +250,25 @@ Two axes must be kept separate here — conflating them is easy:
 1. **`D4` undated members are absent from the time series.** Its year comes from
    status-10; a building with a demolition case but no status-10 exit has `year = null`, so
    it counts in the *totals* but not in `annual.csv` / the trend figures (`D4`'s dated
-   subset ≈ `D5`). Candidate fix: fall back to the `sag002` notification year.
+   subset ≈ `D6`). **Decided 2026-07-12 (Theodor): kept as is — no re-dating, no fallback;
+   the consequence (`D4 ≡ D6` in every annual/rate output) is documented, not "fixed".**
+   The considered alternative — dating case buildings by the case's own `sag002` date —
+   was rejected because that date is the *filing* of the demolition case, not the
+   demolition: measured on this extract it matches the status-10 year exactly for only
+   27.6% of buildings (median 1 year earlier, 8% later), and re-dating would collapse
+   `D5` into `D6` (~97% identical) and erase the D4↔D6 dating contrast. The case-dated
+   view of the case family already exists in the set as `D6`.
 2. **Year-2000 pile-up.** Backdated `virkningFra` below the 2000 clamp all lands on 2000
    (the `D1` spike in `annual_counts`). Candidate fix: a `≤2000` bucket.
 
 ## Not yet done
 
-- **⭐ Outcome × indicator range — the paper's headline (HIGHEST PRIORITY, still missing).**
-  The pipeline produces per-variant counts/area/coverage, but has NOT yet reduced them to the
-  min–max spread that IS the contribution: (a) national demolished m²/yr and (b) demolition
-  **rate vs stock**, over the shared window. Anchor to the Rune PhD's **~0.26%/yr** under the
-  KMD/`sagstype=32` indicator (denominator: Statistics Denmark **BYGB34**), then report the
-  spread across the others — the "swapping the indicator moves the rate by [X]-fold" sentence.
-  The abstract/contribution paragraph cannot be written until this exists. See
-  [`docs/paper.md`](paper.md) → "The rate-vs-stock benchmark" + "Blocking analysis".
+- ~~⭐ Outcome × indicator range — the paper's headline~~ **DONE 2026-07-12** — see "The
+  rate vs stock step" above: `rates_summary.csv` (mean m²/yr + rate per window) and
+  `rates_spread.csv` (the min–max fold spread) now exist, and the PhD's ~0.26% anchor
+  reproduces under `D4`. Decided 2026-07-12: headline window = 2018–2025; BUILD's
+  pre-1999 numerator cut is not applied; the D4/D5 undated-year question is closed as
+  "keep as is, document" (caveat 1) — nothing further is open on this thread.
 - **Fold KMD scoring into the main run** — `src/kmd_comparison.py` runs standalone; it
   could emit its table alongside the other `results/` outputs from `ablation.py`.
 - **BOSSINF scoring** — the one *authoritative* slice (grant-funded demolitions) where a
