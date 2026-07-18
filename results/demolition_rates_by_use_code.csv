@@ -209,8 +209,8 @@ D2,Demolition business process,122,Housing,false,271,1,0.36900369003690037,1,100
 D2,Demolition business process,132,Housing,false,40884,84,0.2054593484003522,80,95.23809523809523,12199,149.5
 D2,Demolition business process,131,Housing,false,118804,207,0.17423655769166022,198,95.65217391304348,56437,129.0
 D2,Demolition business process,523,Leisure,false,1603,2,0.12476606363069245,2,100.0,230,115.0
-D2,Demolition business process,444,Institutions,false,119,0,0.0,0,,0,
 D2,Demolition business process,451,Institutions,false,30,0,0.0,0,,0,
+D2,Demolition business process,444,Institutions,false,119,0,0.0,0,,0,
 D3,Historical AND process-3,210,Agriculture,true,104897,5775,5.505400535763654,5772,99.94805194805195,1317468,149.0
 D3,Historical AND process-3,390,Commerce & services,true,1597,76,4.758922980588603,76,100.0,10675,53.0
 D3,Historical AND process-3,440,Institutions,true,5333,230,4.312769548096756,230,100.0,61844,203.0
@@ -315,8 +315,8 @@ D3,Historical AND process-3,132,Housing,false,40884,51,0.12474317581449956,51,10
 D3,Historical AND process-3,131,Housing,false,118804,92,0.07743847008518233,92,100.0,21689,181.5
 D3,Historical AND process-3,523,Leisure,false,1603,0,0.0,0,,0,
 D3,Historical AND process-3,122,Housing,false,271,0,0.0,0,,0,
-D3,Historical AND process-3,444,Institutions,false,119,0,0.0,0,,0,
 D3,Historical AND process-3,451,Institutions,false,30,0,0.0,0,,0,
+D3,Historical AND process-3,444,Institutions,false,119,0,0.0,0,,0,
 D4,Demolition case (total),210,Agriculture,true,104897,28124,26.811062280141474,28111,99.95377613426255,6225743,149.0
 D4,Demolition case (total),310,Transport,true,3350,717,21.402985074626866,717,100.0,254953,148.0
 D4,Demolition case (total),390,Commerce & services,true,1597,273,17.09455228553538,273,100.0,49479,75.0
@@ -420,8 +420,8 @@ D4,Demolition case (total),523,Leisure,false,1603,5,0.3119151590767312,5,100.0,5
 D4,Demolition case (total),132,Housing,false,40884,124,0.30329713335290087,124,100.0,17409,138.0
 D4,Demolition case (total),,,false,28915,68,0.23517205602628394,0,0.0,0,
 D4,Demolition case (total),131,Housing,false,118804,265,0.22305646274536212,265,100.0,71357,178.0
-D4,Demolition case (total),122,Housing,false,271,0,0.0,0,,0,
 D4,Demolition case (total),444,Institutions,false,119,0,0.0,0,,0,
+D4,Demolition case (total),122,Housing,false,271,0,0.0,0,,0,
 D4,Demolition case (total),451,Institutions,false,30,0,0.0,0,,0,
 D5,Completion proxy,210,Agriculture,true,104897,28066,26.755769945756313,28053,99.95368060999074,6206922,149.0
 D5,Completion proxy,310,Transport,true,3350,716,21.37313432835821,716,100.0,254809,148.0
@@ -526,9 +526,9 @@ D5,Completion proxy,132,Housing,false,40884,56,0.13697289893356815,56,100.0,8079
 D5,Completion proxy,,,false,28915,31,0.1072107902472765,0,0.0,0,
 D5,Completion proxy,131,Housing,false,118804,97,0.08164708258981179,97,100.0,23001,182.0
 D5,Completion proxy,122,Housing,false,271,0,0.0,0,,0,
+D5,Completion proxy,451,Institutions,false,30,0,0.0,0,,0,
 D5,Completion proxy,523,Leisure,false,1603,0,0.0,0,,0,
 D5,Completion proxy,444,Institutions,false,119,0,0.0,0,,0,
-D5,Completion proxy,451,Institutions,false,30,0,0.0,0,,0,
 D6,Case-date proxy for felt 295,210,Agriculture,true,104897,27970,26.66425159918778,27957,99.95352163031819,6196976,149.0
 D6,Case-date proxy for felt 295,310,Transport,true,3350,715,21.343283582089555,715,100.0,254269,148.0
 D6,Case-date proxy for felt 295,390,Commerce & services,true,1597,272,17.031934877896056,272,100.0,49385,74.0
@@ -632,6 +632,6 @@ D6,Case-date proxy for felt 295,132,Housing,false,40884,128,0.31308091184815573,
 D6,Case-date proxy for felt 295,523,Leisure,false,1603,4,0.2495321272613849,4,100.0,393,91.0
 D6,Case-date proxy for felt 295,131,Housing,false,118804,245,0.20622201272684423,245,100.0,68722,180.0
 D6,Case-date proxy for felt 295,,,false,28915,44,0.1521701538993602,0,0.0,0,
-D6,Case-date proxy for felt 295,122,Housing,false,271,0,0.0,0,,0,
 D6,Case-date proxy for felt 295,451,Institutions,false,30,0,0.0,0,,0,
+D6,Case-date proxy for felt 295,122,Housing,false,271,0,0.0,0,,0,
 D6,Case-date proxy for felt 295,444,Institutions,false,119,0,0.0,0,,0,
