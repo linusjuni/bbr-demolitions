@@ -21,3 +21,5 @@ dataset/
 
 datasets_raw/*
 docs/personal/*
+# Manuscript is maintained in Overleaf; local working copy only
+manuscript_overleaf_v3/

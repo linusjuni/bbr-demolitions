@@ -1,43 +1,43 @@
-"""Score every proxy indicator against the KMD / Andersen demolition extract.
+"""Compare every indicator with the Andersen demolition list (the KMD extract).
 
-`docs/indicators.md` long treated the KMD extract (the pre-made list behind Andersen &
-Negendahl 2022/2023) as an **opaque** proxy whose recipe could not be reproduced or
-audited. We now hold the raw extract itself (`dataset/andersen_raw.csv`, 152,300 rows),
-**with building UUIDs**, so we can compare it to our transparent proxies on set
-membership and partly reverse-engineer its recipe.
+The list (`dataset/andersen_raw.csv`, 152,300 rows, 149,013 distinct buildings) was
+extracted from BBR by the register's administrator for Andersen et al. (2022). Every
+row is a whole-demolition case (`290 Sagstype` = 32), and every building carries the
+same ID as in the public data, so the list can be compared with each indicator
+building by building. It is a reference, not ground truth.
 
-What this script establishes, empirically:
+## How the comparison is made (each side keeps its own dates)
 
-1. **The extract's core signal is `Sagstype = 32`** (Nedrivning hel / total demolition) —
-   *every* row carries it. So KMD is a total-demolition-case list, i.e. the same signal as
-   our D4/D5, NOT the register-exit `status = 10` (D1).
-2. **All 149,013 distinct KMD buildings are present in our 2017+ extract** (backdated
-   `virkningFra` keeps the records), so the join is clean and total.
-3. **Window-matched, D4 reproduces KMD to ~99%** (recall 99.7%, precision 99.4%,
-   Jaccard 0.99). D1 (status=10) has 100% recall but ~47% precision — a strict *superset*,
-   not KMD. So the "opaque" extract is reproducible after all: it is `sagstype = 32`.
+The list and the indicators date demolitions differently: the list has its own date
+per case (`virkningFra`, missing for 28,204 rows), and the indicators take their years
+from different events. Forcing one date on both sides would drop every building that
+lacks that date and flatter some indicators (the earlier version dated both sides by
+the first status-10 date, which dropped exactly the buildings that make D2/D4/D6
+differ from D3/D5). So each side decides by its own date which buildings fall in the
+period, and the matching ignores the year:
 
-## Why the window matters (and the one-clock rule)
+- **recall** = of the list buildings whose list date (earliest per building) falls in
+  the period, the share the indicator counts *in any year*;
+- **precision** = of the indicator's buildings whose own year falls in the period, the
+  share that is *anywhere* in the list (dated or not).
 
-KMD spans Feb 2000 – Jun 2020 and the paper discards pre-2011; our proxies run 2000–2025
-unfiltered. Comparing them raw makes each proxy's legitimate post-2020 / pre-2011
-demolitions look like false positives, so **precision is meaningless without windowing**
-(un-windowed, D4 precision reads 63%; windowed to 2011–2019 it is 99%).
+"In any year" means the indicator built with its period opened wide (same code, see
+``any_year``). This matters: 3,951 list buildings dated 2010–2011 by the list are first
+historical on 2000-02-05 (the conversion date) in our data, so the indicators dated by
+the historical mark place them in 2000, outside the full period.
 
-To avoid dating the two sides on different clocks, both KMD and every proxy are dated by
-the SAME field — our extract's status-10 `virkningFra` year (`indicators._status10_year`).
-Consequence: buildings that never reached status-10 (case-only / process-only members)
-drop from *both* sides, so within the window D2≡D3 and D4≡D5. That is a fair common clock;
-it slightly understates D2's and D4's native reach, but the D4≈KMD headline is robust.
+No Jaccard index: the two sides are selected by different dates.
 
-Run:  ``.venv/bin/python src/kmd_comparison.py``            (both raw and windowed tables)
-      ``.venv/bin/python src/kmd_comparison.py --window 2011 2019``   (custom window)
+Run:  ``.venv/bin/python src/kmd_comparison.py``                 (2011–2019)
+      ``.venv/bin/python src/kmd_comparison.py --window 2011 2019``
 """
 
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 import polars as pl
 
@@ -47,16 +47,16 @@ _ROOT = Path(__file__).resolve().parent.parent
 KMD_PATH = str(_ROOT / "dataset" / "andersen_raw.csv")
 RESULTS = _ROOT / "results"
 
-# Default fair window: post the pre-2011 registration-error era the paper itself excludes,
-# and before the mid-2020 extract cutoff (2020 is only partial in the KMD data).
+# The external comparison period: Andersen et al. (2022) start in 2011, and the list
+# was extracted in spring 2020, so 2019 is its last full year.
 DEFAULT_WINDOW = (2011, 2019)
 
 
 def load_kmd(path: str = KMD_PATH) -> pl.DataFrame:
-    """The raw KMD extract with lower-cased ``building_id`` (matches our parquet casing).
+    """The raw list with lower-cased ``building_id`` and its own date ``list_date``.
 
-    Raises if the extract is not the expected all-``Sagstype 32`` demolition list, since
-    that invariant is the whole basis of the comparison.
+    Raises if the list is not the expected all-``Sagstype 32`` demolition list, since
+    that invariant is the basis of the comparison.
     """
     k = pl.read_csv(path, null_values=["NULL"], infer_schema_length=10000)
     sagstypes = set(k["290 Sagstype"].unique())
@@ -64,59 +64,72 @@ def load_kmd(path: str = KMD_PATH) -> pl.DataFrame:
         raise ValueError(
             f"Expected KMD extract to be all Sagstype 32; saw {sorted(sagstypes)}"
         )
-    return k.with_columns(pl.col("id_lokalId").str.to_lowercase().alias("building_id"))
+    return k.with_columns(
+        pl.col("id_lokalId").str.to_lowercase().alias("building_id"),
+        pl.col("virkningFra").str.to_date("%m/%d/%Y").alias("list_date"),
+    )
 
 
-def _status10_clock() -> dict[str, int]:
-    """building_id (lower-cased) -> status-10 virkningFra year, the shared dating clock."""
-    s10 = (
-        ind._status10_year()
+def list_years(kmd: pl.DataFrame) -> dict[str, int | None]:
+    """building_id -> year of the earliest list date (None if the list gives no date)."""
+    per_building = kmd.group_by("building_id").agg(pl.col("list_date").min())
+    return {
+        b: (d.year if d is not None else None)
+        for b, d in zip(per_building["building_id"], per_building["list_date"])
+    }
+
+
+@contextmanager
+def any_year() -> Iterator[None]:
+    """Build indicators with the period opened wide (membership in any year).
+
+    ``indicators._in_window`` and ``indicators.d4`` read ``YEAR_MIN``/``YEAR_MAX`` when
+    called, so widening them reuses the indicator definitions unchanged.
+    """
+    old = ind.YEAR_MIN, ind.YEAR_MAX
+    ind.YEAR_MIN, ind.YEAR_MAX = 0, 9999
+    try:
+        yield
+    finally:
+        ind.YEAR_MIN, ind.YEAR_MAX = old
+
+
+def _years(indicator: ind.Indicator) -> dict[str, int | None]:
+    df = (
+        indicator.build()
         .select(pl.col("building_id").str.to_lowercase(), "year")
         .collect()
     )
-    return dict(zip(s10["building_id"], s10["year"]))
+    return dict(zip(df["building_id"], df["year"]))
 
 
-def _proxy_set(indicator: ind.Indicator) -> set[str]:
-    return set(
-        indicator.build()
-        .select(pl.col("building_id").str.to_lowercase())
-        .collect()
-        .to_series()
-    )
+def _in(years: dict[str, int | None], lo: int, hi: int) -> set[str]:
+    return {b for b, y in years.items() if y is not None and lo <= y <= hi}
 
 
-def score(window: tuple[int, int] | None, kmd_path: str = KMD_PATH) -> pl.DataFrame:
-    """Per-proxy recall / precision / Jaccard against the KMD set.
-
-    ``window=None`` compares full sets as-is (recall meaningful, precision NOT — see the
-    module docstring). A ``(min, max)`` window dates both sides on the shared status-10
-    clock and restricts to that inclusive year range, making precision fair.
-    """
-    kmd = set(load_kmd(kmd_path)["building_id"])
-    clock = _status10_clock() if window else None
-
-    def restrict(s: set[str]) -> set[str]:
-        if window is None:
-            return s
-        lo, hi = window
-        return {b for b in s if (y := clock.get(b)) is not None and lo <= y <= hi}
-
-    kmd_w = restrict(kmd)
+def score(window: tuple[int, int] = DEFAULT_WINDOW, kmd_path: str = KMD_PATH) -> pl.DataFrame:
+    """Per-indicator recall and precision against the list (see module docstring)."""
+    lo, hi = window
+    ly = list_years(load_kmd(kmd_path))
+    list_all = set(ly)
+    list_in = _in(ly, lo, hi)
     rows = []
     for i in ind.all_indicators():
-        s = restrict(_proxy_set(i))
-        inter = len(s & kmd_w)
-        union = len(s | kmd_w)
+        own = _in(_years(i), lo, hi)  # as defined in the paper (full period)
+        with any_year():
+            ever = set(_years(i))  # counted in any year
+        found = len(list_in & ever)
+        in_list = len(own & list_all)
         rows.append(
             {
                 "proxy": i.id,
                 "definition": i.description,
-                "n_proxy": len(s),
-                "n_intersection": inter,
-                "recall_of_kmd": inter / len(kmd_w) if kmd_w else 0.0,
-                "precision": inter / len(s) if s else 0.0,
-                "jaccard": inter / union if union else 0.0,
+                "n_list_in_period": len(list_in),
+                "n_list_found": found,
+                "recall": found / len(list_in) if list_in else 0.0,
+                "n_proxy_in_period": len(own),
+                "n_proxy_in_list": in_list,
+                "precision": in_list / len(own) if own else 0.0,
             }
         )
     return pl.DataFrame(rows)
@@ -125,37 +138,42 @@ def score(window: tuple[int, int] | None, kmd_path: str = KMD_PATH) -> pl.DataFr
 def profile_disagreement(
     window: tuple[int, int] = DEFAULT_WINDOW, kmd_path: str = KMD_PATH
 ) -> pl.DataFrame:
-    """Profile the buildings where D4 and KMD disagree, vs the ones they agree on.
+    """Profile where D4 and the list disagree, on the same sets as ``score``.
 
-    Records the finding written up in `docs/indicators.md` ("The ~1% where D4 and KMD
-    disagree is structured"): the mismatch is not random. `kmd_only` (D4 misses) are
-    case-less status-10 ghosts, ~63% empty stubs; `d4_only` (KMD omitted) are clean,
-    fully-populated demolition-case buildings. One row per group with the diagnostics.
+    ``kmd_only``: list buildings in the period that D4 does not count in any year.
+    ``d4_only``: D4 buildings dated in the period that are not in the list.
+    ``both``: list buildings in the period that D4 counts.
     """
     lo, hi = window
-    clock = _status10_clock()
+    ly = list_years(load_kmd(kmd_path))
+    list_all, list_in = set(ly), _in(ly, lo, hi)
+    d4 = ind.get("D4")
+    own = _in(_years(d4), lo, hi)
+    with any_year():
+        ever = set(_years(d4))
+    groups = {"both": list_in & ever, "kmd_only": list_in - ever, "d4_only": own - list_all}
 
-    def restrict(s: set[str]) -> set[str]:
-        return {b for b in s if (y := clock.get(b)) is not None and lo <= y <= hi}
-
-    kmd = restrict(set(load_kmd(kmd_path)["building_id"]))
-    d4 = restrict(_proxy_set(ind.get("D4")))
-    groups = {"both": kmd & d4, "kmd_only": kmd - d4, "d4_only": d4 - kmd}
-
-    # Which buildings carry a linked demolition case at all (why D4 keeps/drops them).
     cased = set(
-        _demol_case_buildings := ind._demolition_cases()
+        ind._demolition_cases()
         .select(pl.col("building_id").str.to_lowercase())
         .collect()
         .to_series()
     )
-    # Per-building latest attributes.
+    # Per-building latest attributes (select the needed columns before grouping).
     byg = (
         pl.scan_parquet(ind.BYGNING_PATH)
+        .select(
+            "id_lokalId",
+            "virkningFra",
+            "status",
+            "byg021BygningensAnvendelse",
+            "byg026Opførelsesår",
+            "byg041BebyggetAreal",
+        )
         .sort("virkningFra")
         .group_by("id_lokalId")
         .agg(
-            (pl.col("status").last() != 10).alias("reactivated"),
+            (pl.col("status").last() != 10).alias("not_historical_today"),
             pl.col("byg021BygningensAnvendelse").drop_nulls().last().alias("use"),
             pl.col("byg026Opførelsesår").drop_nulls().last().alias("cyear"),
             pl.col("byg041BebyggetAreal").drop_nulls().last().alias("footprint"),
@@ -171,12 +189,12 @@ def profile_disagreement(
         rows.append(
             {
                 "group": name,
-                "n": sub.height,
+                "n": len(s),
                 "has_demolition_case": len(s & cased) / n,
                 "null_use": sub["use"].null_count() / n,
                 "null_cyear": sub["cyear"].null_count() / n,
                 "null_footprint": sub["footprint"].null_count() / n,
-                "reactivated": sub["reactivated"].mean(),
+                "not_historical_today": sub["not_historical_today"].mean(),
                 "median_versions": sub["n_versions"].median(),
             }
         )
@@ -185,21 +203,9 @@ def profile_disagreement(
 
 def _print(title: str, df: pl.DataFrame) -> None:
     print(f"\n{title}")
-    if {"proxy", "recall_of_kmd"}.issubset(df.columns):  # a score() table
-        df = df.select(
-            "proxy",
-            "n_proxy",
-            "n_intersection",
-            (pl.col("recall_of_kmd") * 100).round(1).alias("recall%"),
-            (pl.col("precision") * 100).round(1).alias("prec%"),
-            pl.col("jaccard").round(3),
-        )
-    else:  # a profile table — round the float diagnostics to percentages/2dp
-        df = df.with_columns(
-            pl.selectors.float().exclude("median_versions").round(3)
-        )
-    with pl.Config(tbl_hide_dataframe_shape=True, tbl_rows=-1):
-        print(df)
+    df = df.with_columns(pl.selectors.float().exclude("median_versions").round(3))
+    with pl.Config(tbl_hide_dataframe_shape=True, tbl_rows=-1, tbl_cols=-1):
+        print(df.drop("definition", strict=False))
 
 
 def main() -> None:
@@ -211,9 +217,10 @@ def main() -> None:
         nargs=2,
         metavar=("MIN", "MAX"),
         default=list(DEFAULT_WINDOW),
-        help="inclusive year window for the fair comparison (default 2011 2019)",
+        help="inclusive period (default 2011 2019)",
     )
     args = ap.parse_args()
+    window = (args.window[0], args.window[1])
 
     kmd = load_kmd(args.kmd)
     n_distinct = kmd["building_id"].n_unique()
@@ -225,29 +232,20 @@ def main() -> None:
     )
     present = len(set(kmd["building_id"]) & set(byg["building_id"]))
     print(
-        f"KMD extract: {kmd.height} rows, {n_distinct} distinct buildings, "
-        f"all Sagstype 32.\n{present}/{n_distinct} "
-        f"({100 * present / n_distinct:.1f}%) present in our extract."
+        f"List: {kmd.height} rows, {n_distinct} distinct buildings, all Sagstype 32; "
+        f"{kmd['list_date'].null_count()} rows without a date.\n"
+        f"{present}/{n_distinct} ({100 * present / n_distinct:.1f}%) present in our extract."
     )
 
-    raw = score(window=None, kmd_path=args.kmd)
-    windowed = score(window=tuple(args.window), kmd_path=args.kmd)
-    _print("Raw (NOT window-matched — precision not meaningful):", raw)
-    _print(f"Window-matched to {args.window[0]}-{args.window[1]} (status-10 clock):", windowed)
-
-    prof = profile_disagreement(window=tuple(args.window), kmd_path=args.kmd)
-    _print("D4-vs-KMD disagreement profile (where they differ, and how):", prof)
+    scores = score(window, args.kmd)
+    _print(f"Recall and precision, {window[0]}-{window[1]} (each side by its own date):", scores)
+    prof = profile_disagreement(window, args.kmd)
+    _print("D4-vs-list disagreement profile:", prof)
 
     RESULTS.mkdir(exist_ok=True)
-    out = pl.concat(
-        [
-            raw.with_columns(pl.lit("raw").alias("comparison")),
-            windowed.with_columns(
-                pl.lit(f"window_{args.window[0]}_{args.window[1]}").alias("comparison")
-            ),
-        ]
+    scores.with_columns(pl.lit(f"{window[0]}_{window[1]}").alias("period")).write_csv(
+        RESULTS / "kmd_comparison.csv"
     )
-    out.write_csv(RESULTS / "kmd_comparison.csv")
     prof.write_csv(RESULTS / "kmd_disagreement_profile.csv")
     print(
         f"\nWrote {RESULTS / 'kmd_comparison.csv'} and "

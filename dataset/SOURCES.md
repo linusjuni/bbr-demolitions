@@ -17,9 +17,27 @@ years legitimately reach back to ~2000. Raw BBR column names, UTC datetimes.
   Carries the building UUID (`id_lokalId`) plus `290 Sagstype`, status codes, dates and
   BBR area columns.
 - **Every row is `Sagstype = 32`** (total demolition). All 149,013 distinct buildings join
-  into our extract (100%). Used as a **window-matched external reference**, not ground
-  truth — see `src/kmd_comparison.py` and
+  into our extract (100%). Its own date (`virkningFra`) is missing for 28,204 rows.
+  Used as an **external reference** for 2011–2019 (each side dated by its own date,
+  matching ignores the year), not ground truth — see `src/kmd_comparison.py` and
   [`docs/indicators.md`](../docs/indicators.md#reproducing-the-kmdandersen-extract--its-sagstype-32).
+
+## Statistics Denmark BYGB34 (building-stock floor area)
+
+- `bygb34.csv` — BYGB34 "Areas of the building stock" (table updated 2026-03-27),
+  downloaded 2026-11-10 from the DST API (`POST https://api.statbank.dk/v1/data`,
+  `format=BULK`, `lang=en`, `valuePresentation=CodeAndValue`).
+  Selection: OMRÅDE = 000 All Denmark; ANVEND, AREALTYPE, OPFØRELSESÅR, Tid = all.
+  47,588 rows (empty combinations are omitted by DST). Unit: 1,000 m².
+  Stock on 1 January of each year, 2011–2026; small buildings (garages,
+  carports, outhouses) are included only from 2011.
+- AREALTYPE: 1 floorspace above basement, 2 floorspace in basement,
+  3 industrial/commercial, 4 dwelling area.
+- Not committed (`dataset/` is git-ignored); re-download with the request above.
+- `bygb12.csv` — BYGB12 "Buildings" (number of buildings; same statistic,
+  "Bygningsopgørelsen", same update 2026-03-27), downloaded 2026-11-10 with the same
+  request (OMRÅDE = 000; EJER, ANVEND, AREALINT, Tid = all). 14,199 rows, 2011–2026.
+  Sum over all categories, 1 January 2026: 4,945,385 buildings.
 
 ## Committed dataset
 
