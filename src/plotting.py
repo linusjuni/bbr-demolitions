@@ -97,6 +97,49 @@ def annual_lines(
     _save(fig, path)
 
 
+def rate_lines(
+    rates_df: pl.DataFrame,
+    value: str,
+    ylabel: str,
+    title: str,
+    path: Path,
+    series: list[str],
+    anchors: list[tuple[float, str]] = (),
+) -> None:
+    """Rate-per-indicator time series with published reference levels.
+
+    Same shape as ``annual_lines``; ``anchors`` are (level, label) pairs — published
+    field reference values (e.g. the Rune-PhD ~0.26%/yr) drawn as grey horizontal
+    lines behind the series, labelled through the legend.
+    """
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    for (level, label), shade in zip(anchors, cycle(["0.35", "0.6"])):
+        ax.axhline(level, color=shade, linewidth=1.2, linestyle=(0, (6, 3)), zorder=1, label=label)
+    palette = sns.color_palette("colorblind", n_colors=len(series))
+    styles = cycle(_LINESTYLES)
+    for label, colour in zip(series, palette):
+        sub = rates_df.filter(pl.col("variant") == label).sort("year")
+        if sub.height:
+            ax.plot(
+                sub["year"],
+                sub[value],
+                color=colour,
+                marker=_MARKER,
+                markersize=4,
+                linestyle=next(styles),
+                linewidth=1.4,
+                label=label,
+            )
+    ax.set_xlabel("Year")
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(bottom=0)
+    ax.set_title(title)
+    ax.legend(ncol=2, frameon=False, fontsize=8)
+    sns.despine(ax=ax)
+    fig.tight_layout()
+    _save(fig, path)
+
+
 def area_definition_bars(
     summary_df: pl.DataFrame,
     area_defs: list[str],
